@@ -52,14 +52,6 @@ Promise.all([
         d.count_type = 'actual'
     });
 
-    // left join admin to dist - Provinces
-    const distAdminProv = equijoinWithDefault(
-        dist_prov, admin_prov, 
-        "prov_date", "prov_date", 
-        ({province, report_date, dvaccine, cumulative_dvaccine}, {avaccine, cumulative_avaccine}, ) => 
-        ({province, report_date, dvaccine, cumulative_dvaccine, avaccine, cumulative_avaccine}), 
-        {avaccine:"0", cumulative_avaccine:"0"});
-
     // map population to distAdminProv
     const distAdminProvPop = distAdminProv.map(t1 => ({...t1, ...popProv.find(t2 => t2.province === t1.province)}))
 
