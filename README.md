@@ -1,4 +1,4 @@
-# Canada COVID-19 Vaccine Distribution and Administration
+# Canada COVID-19 Vaccine Administration vs Other Countries
 
 This code is used to create visualizations showing Canada's COVID-19 vaccine administration vs other countries.
 
