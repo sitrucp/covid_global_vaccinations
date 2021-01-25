@@ -87,7 +87,7 @@ Promise.all([
         var divChart = document.createElement("div");
         divChart.id = divWorld;
         divText.id = divTitle;
-        var chartDetails = 'Global Total Doses Per 100 Persons: Tracking How Canada Compares to Other Countries';
+        var chartDetails = 'Global Total Doses Per 100 Persons: Tracking How Canada Compares To Other Countries';
 
         divText.innerHTML  = chartDetails;
         document.getElementById('div_world_total_per100_chart').append(divText);
