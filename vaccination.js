@@ -142,7 +142,7 @@ Promise.all([
                 pad: 2
             },
             title: {
-                text:'Global Total Doses Per 100 Persons: Canada Ranks ' + canadaRank + ' out of ' + countryCount + ' countries',
+                text:'Global Total Doses Per 100 Persons: Canada Ranks ' + canadaRank + ' of ' + countryCount + ' countries',
                 font: {
                     weight: 'bold',
                     size: 14,
