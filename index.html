@@ -7,11 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
     
-    <meta property="og:title" content="Canada COVID-19 Vaccination Schedule"/>
+    <meta property="og:title" content="Global COVID-19 Vaccination Schedule"/>
 
     <meta property='og:image' content='https://sitrucp.github.io/\ws_covid_canada_vaccination/image_vaccinations.jpg'/>
 
-    <meta property="og:description" content="Canada COVID-19 Vaccination Tracking."/>
+    <meta property="og:description" content="Global COVID-19 Vaccination Tracking."/>
 
     <meta property="og:url" content="https://sitrucp.github.io/\ws_covid_canada_vaccination/index.html" />
     
@@ -38,7 +38,9 @@
             <ul class="list-inline">
                 <li class="list-inline-item"><a href="https://sitrucp.github.io/canada_covid_health_regions/index.html">Canada Covid-19 Case Map</a></li>
                 <li class="list-inline-item">/</li>
-                <li class="list-inline-item">Canada Covid-19 Vaccination Schedule</li>
+                <li class="list-inline-item"><a href="https://sitrucp.github.io/covid_canada_vaccinations/index.html">Canada Covid-19 Vaccination Schedule</a></li>
+                <li class="list-inline-item">/</li>
+                <li class="list-inline-item">Global Covid-19 Vaccination Schedule</li>
                 <li class="list-inline-item">/</li>
                 <li class="list-inline-item"><a href="https://sitrucp.github.io/canada_covid_health_regions/small_multiples/index.html">Canada Days Since Last New Case</a></li>
             </ul>
@@ -47,7 +49,7 @@
 
     <div class="row">
         <div class="col-md-12">
-            <h4 id="title">Canada COVID-19 Vaccination Schedule</h4>
+            <h4 id="title">Global COVID-19 Vaccination Schedule</h4>
         </div>
     </div>
 
@@ -55,45 +57,39 @@
 
         <div class="col-md-9">
 
-            <p>These visualizations illustrate the huge task to meet the Canadian government's goal of providing vaccinations for all age 15+ Canadians by Sep 30, 2021. They include the following data:</p>
-
+            <p>These visualizations illustrate Canada's COVID-19 vaccine dose administration global ranking and daily changes. The 3 visualizations include:</p>
+            
             <ul>
-                <li>Actual count of vaccine doses administered to-date across Canada as reported by provinces (blue bars).</li>
+                <li>"Total Doses Per 100 Persons" is shown for all countries administering vaccines that are tracked by Our World in Data organization. Canada's value is highlighted and shows current global ranking by doses per 100 people.</li>
+                     
+                <li>Canada's "Total Doses Per 100 Persons" and it's global ranking are shown by date. This shows Canada's relative global ranking changes by day. A higher rank means that other countries are administering more doses per 100 people than Canada.</li>
 
-                <li>Calculated count of dose administration remaining that is required to fully vaccinate age 15+ population by Sep 30, 2021 (gray bars).</li>
+                <li>Canada's "Daily Doses Per 100 Persons" is shown by date. This metric shows Canada's actual daily dose administration.</li>
             </ul>
 
-            <p class="text-muted">COVID-91 vaccine data comes from the <a href = "https://github.com/ishaberry/Covid19Canada" target="blank">COVID-19 Canada Open Data Working Group</a> who are doing an amazing job collating provincial COVID-19 data!</p>
-
+            <p class="text-muted">COVID-91 vaccine data comes from <a href = "https://github.com/owid/covid-19-data/tree/master/public/data/vaccinations" target="blank">Our World In Data</a> who are doing an amazing job collating COVID-19 data from around the world!</p>
+            
+            <!--
             <a href="#" onclick="hideShowDiv('read_more');">Read more</a>
+            -->
 
             <div id="read_more" style="display:none">
-
-                <p>The total calculated count of projected dose administration for Canada and each province is equal to their respective population's x 2, minus the count of doses administered to-date. A daily dose count is then calculated by dividing the total by the number of days between the last actual reporting date and Sep 30, 2021.</p>
-
-                <p>Population x 2 is used because dose administration reporting records single doses but two doses are required for full vaccination using the available Pfizer and Moderna vaccines. This would be updated if and when single dose vaccines become available.</p>
-
-                <p>It should be noted that the Canadian government has specifically said the goal was to provide vaccinations to "all Canadians who wanted them." Given polling demonstrating vaccine hesitancy by some Canadians, the total vaccine doses required to meet the "all Canadians who want the vaccine" goal will be less than the population x 2, but how much is not yet clear.</p> 
-
-                <p>In addition, "herd immunity" for COVID-19 is thought to be conferred if at least 70% of the population receives a vaccine.  But some fear that the extremely infectious nature of COVID-19 could require a significantly higher threshold.</p>
-
-                <p>Given the uncertainty of both cases above it is better to use vaccination of 100% of age 15+ population as the goal.</p>
             
             </div>
 
-            <div id="div_canada_chart"></div>
-            <div id="div_prov_chart"></div>
+            <div id="div_world_total_per100_chart" class="div_chart"></div>
+            
+            <div id="div_canada_daily_per100_rank_chart" class="div_chart"></div>
+
+            <div id="div_canada_daily_per100_chart" class="div_chart"></div>
 
         </div>
 
-        <p>Site files: <a href="https://github.com/sitrucp/canada_covid_health_regions" target="blank">github.com/sitrucp/canada_covid_health_regions</a></p>
-
-
+        <p>Site files: <a href="https://github.com/sitrucp/covid_global_vaccinations" target="blank">github.com/sitrucp/covid_global_vaccinations</a></p>
 
     </div>
 
 </div>
-<script src="provinces.json" type="text/javascript"></script>
 <script src="vaccination.js"></script>
 </body>
 </html>

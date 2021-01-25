@@ -1,13 +1,16 @@
 
-//GET DATA=================================
-// get csv files from working group github repository
+// get csv files from OWID github repository
+var file_update_time = "https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/owid-covid-data-last-updated-timestamp.txt";
+
 var file_vaccinations = "https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/vaccinations/vaccinations.csv";
 
 var file_locations = "https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/vaccinations/locations.csv";
 
-var file_population = "https://raw.githubusercontent.com/sitrucp/covid_global_vaccinations/master/population.csv";
+// owid population file
+//var file_population = "https://raw.githubusercontent.com/owid/covid-19-data/master/scripts/input/un/population_2020.csv"; 
 
-var file_update_time = "https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/owid-covid-data-last-updated-timestamp.txt";
+// population file
+var file_population = "https://raw.githubusercontent.com/sitrucp/covid_global_vaccinations/master/population.csv";
 
 Promise.all([
     d3.csv(file_vaccinations),
@@ -19,204 +22,98 @@ Promise.all([
 
     // get data sets from promise
     var vaccinations = data[0];
-    var admin_prov = data[1];
-    var locations = data[2];
-    var population = data[3];
-    var updateTime = data[4];
+    var locations = data[1];
+    var population = data[2];
+    var updateTime = data[3];
 
     // get update time from working group repository
     lastUpdated = updateTime.columns[0];
     
     document.getElementById('title').innerHTML += ' <small class="text-muted">Last updated: ' + lastUpdated + '</small>';
 
-    // locations reduce to max date 
-
-    // locations insert owid_vaccine_alt, vaccines_group columns
-    // need lookup for alt and group
-    // modify population to have owid country spellings
-
-
-    // left join admin to dist - Canada
-    const distAdminCanadaPop = equijoinWithDefault(
-        dist_canada, admin_canada, 
-        "prov_date", "prov_date", 
-        ({province, report_date, dvaccine, cumulative_dvaccine, population}, {avaccine, cumulative_avaccine}, ) => 
-        ({province, report_date, dvaccine, cumulative_dvaccine, avaccine, cumulative_avaccine, population}), 
-        {prov_date:null, avaccine:"0", cumulative_avaccine:"0"});
-
-    // add percentages to distAdminCanada
-    distAdminCanadaPop.forEach(function(d) {
-        d.pct_pop_dist = parseInt(d.cumulative_dvaccine) / parseInt(d.population)
-        d.pct_pop_admin = parseInt(d.cumulative_avaccine) / parseInt(d.population)
-        d.pct_dist_admin = parseInt(d.cumulative_avaccine) / parseInt(d.cumulative_dvaccine)
-        d.count_type = 'actual'
+    // create daily vaccinations per 100 column
+    vaccinations.forEach(function(d) {
+        d.daily_vaccinations_per_hundred = (d.daily_vaccinations_per_million / 10000).toFixed(3);
     });
 
-    // map population to distAdminProv
-    const distAdminProvPop = distAdminProv.map(t1 => ({...t1, ...popProv.find(t2 => t2.province === t1.province)}))
-
-    // add percentages to distAdminProvPop
-    distAdminProvPop.forEach(function(d) {
-        d.pct_pop_dist = parseInt(d.cumulative_dvaccine) / parseInt(d.population)
-        d.pct_pop_admin = parseInt(d.cumulative_avaccine) / parseInt(d.population)
-        d.pct_dist_admin = parseInt(d.cumulative_avaccine) / parseInt(d.cumulative_dvaccine)
-        d.count_type = 'actual'
+    // filter England, Gibralter, North Ireland, Scotland, Wales, World from vaccinations
+    const vacDetail = vaccinations.filter(function(d) { 
+        return d.location != "England" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Scotland" && d.location != "Wales" && d.location != "World" && d.location != "European Union";
     });
 
-    // append planned to actual but only if no actual data for a given date
+    // create owid_vaccine_alt, vaccines_group columns in locations
+    locations.forEach(function(d) {
+        d.owid_vaccine_alt = vaccineAlt(d.vaccines);
+        d.vaccines_group = vaccineGroup(d.vaccines);
+    });
 
-    // create planned cumulative_avaccine and cumulative_dvaccine
+    // left join population to location
+    const locationPop = equijoinWithDefault(
+        locations, population, 
+        "location", "country", 
+        ({location, vaccines, owid_vaccine_alt, vaccines_group, last_observation_date}, {population}, ) => 
+        ({location, vaccines, owid_vaccine_alt, vaccines_group, last_observation_date, population}), 
+        {population:null});
 
+    // left join locationPop to vaccinations
+    const vacDetailLoc = equijoinWithDefault(
+        vacDetail, locationPop, 
+        "location", "location", 
+        ({location, iso_code, date, total_vaccinations, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred}, {vaccines, last_observation_date, owid_vaccine_alt, vaccines_group, population}, ) => 
+        ({location, iso_code, date, total_vaccinations, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, vaccines, last_observation_date, owid_vaccine_alt, vaccines_group, population}), 
+        {population: null});
 
-    // get canada dist & admin max dates
-    var maxDistDate = d3.max(dist_canada.map(d=>d.report_date));
-    var maxAdminDate = d3.max(admin_canada.map(d=>d.report_date));
+    // filter vaccinations dataset by location max date to get current records only
+    const vacCurrent = vacDetailLoc.filter(function(d) { 
+        return d.date == d.last_observation_date;
+    });
 
-    function createFutureData(pop, maxDate, dist, admin, prov) {
-        // forecast distribution are here: 
-        // https://www.canada.ca/en/public-health/services/diseases/2019-novel-coronavirus-infection/prevention-risks/covid-19-vaccine-treatment/vaccine-rollout.html
-        // maxDate is max date in original data eg last date reported
+    function createGlobalPer100Chart() {
 
-        // calculate daysRemaining (# days) eg maxDate to Sep 30
-        var daysRemaining = goalDate();
+        // CREATE PER 100 CHART
+        // order vaccinationMaxDate desc by total_vaccinations_per_hundred
+        vacCurrent.sort((a, b) => {
+            return b.total_vaccinations_per_hundred - a.total_vaccinations_per_hundred;
+        });
 
-        // create future data
-        var futureData = [];
-        var province = prov;
-        var avaccine_full_req = ((pop * 2) - (admin))
-        var dvaccine_full_req = ((pop * 2) - (dist))
-        var avaccine = avaccine_full_req / daysRemaining;
-        var dvaccine = dvaccine_full_req / daysRemaining;
+        // Create chart text content
+        var canadaRank = vacCurrent.findIndex(x => x.location ==="Canada") + 1;
+        var canadaPer100 = vacCurrent.find(x => x.location === "Canada").total_vaccinations_per_hundred;
 
-        // loop through days remaining to create new calculated records
-        for (var i=1; i<daysRemaining; i++) { 
+        // create divs, para for Canada chart
+        var divWorld = 'divWorld';
+        var divTitle = divWorld + 'Title';
+        var divText = document.createElement("h4");
+        var divChart = document.createElement("div");
+        divChart.id = divWorld;
+        divText.id = divTitle;
+        var chartDetails = 'Global Ranking Of Total Doses Per 100 Persons: Tracking How Canada Compares to Other Countries';
 
-            var report_date = new Date(maxDate);
-            report_date.setDate(report_date.getDate() + i);
-            var cumulative_avaccine = admin + (avaccine * i);
-            var cumulative_dvaccine = dist + (dvaccine * i);
-            var pct_dist_admin = cumulative_avaccine / cumulative_dvaccine;
-            var pct_pop_admin = cumulative_avaccine / pop;
-            var pct_pop_dist = cumulative_dvaccine / pop;
-            var count_type = 'calculated';
-
-            futureData.push({
-                province,
-                report_date, 
-                avaccine, 
-                dvaccine, 
-                cumulative_avaccine, 
-                cumulative_dvaccine, 
-                pct_dist_admin,
-                pct_pop_admin,
-                pct_pop_dist,
-                count_type
-            });
-        }
-
-        return futureData;
-    }
-
-    // create days remaining
-    function goalDate() {
-        var endDate = new Date("9/30/2021");
-        var daysToGoalDate = Math.floor((endDate - maxAdminDate) / (1000*60*60*24))
-        return daysToGoalDate
-    }
-
-    // assign bar color for actual and calculated y values
-    function fillColor(x, maxDate) {
-        colors = [];
-        for (var i=0; i<x.length; i++) {
-            if (Date.parse(x[i]) > Date.parse(maxDate)) {
-                colors.push('rgba(204,204,204,1)');
-            } else {
-                colors.push('rgb(49,130,189)');
-            }
-        }
-        return colors
-    }
-
-    function createCanadaChart() {
-
-        // ggt dist and admin totals by summing values, and population using max
-        var province = "Canada";
-        var max_pct_dist_admin = d3.max(distAdminCanadaPop.map(d=>d.pct_dist_admin));
-        var population = d3.max(distAdminCanadaPop.map(d=>d.population));
-        var max_pct_dist_admin = d3.max(distAdminCanadaPop.map(d=>d.pct_dist_admin));
-
-        // get future data
-        var futureData = createFutureData(popCanada, maxAdminDate, distTotalCanada, adminTotalCanada, province);
-
-        // CREATE CANADA CHART
-
-        // concat actual and future data
-        var dataConcat = distAdminCanadaPop.concat(futureData);
+        divText.innerHTML  = chartDetails;
+        document.getElementById('div_world_total_per100_chart').append(divText);
+        document.getElementById('div_world_total_per100_chart').append(divChart);
 
         // create x and y axis data sets
         var x = [];
-        var yDist = [];
-        var yAdmin = [];
-        var yPopDist = [];
-        var yPopAdmin = [];
-        var yDistAdmin = [];
-
+        var yPer100 = [];
+ 
         // create axes x and y arrays
-        for (var i=0; i<dataConcat.length; i++) {
-            var row = dataConcat[i];
-            x.push(row['report_date']);
-            yDist.push(parseInt(row['dvaccine']));
-            yAdmin.push(parseInt(row['avaccine']));
-            yPopDist.push(row['pct_pop_dist']);
-            yPopAdmin.push(row['pct_pop_admin']);
-            yDistAdmin.push(row['pct_dist_admin']);
+        for (var i=0; i<vacCurrent.length; i++) {
+            var row = vacCurrent[i];
+            x.push(row['location']);
+            yPer100.push(row['total_vaccinations_per_hundred']);
         }
 
-        var pctDistAdmin = {
-            name: 'pctDistAdmin',
+        var per100 = {
+            name: 'Doses Per 100',
             x: x,
-            y: yDistAdmin,
-            type: 'bar',
-        };
-        
-        var pctPopAdmin = {
-            name: 'pctPopAdmin',
-            x: x,
-            y: yPopAdmin,
-            type: 'bar'
-        };
-
-        var pctDistAdmin = {
-            name: 'pctPopDist',
-            x: x,
-            y: yPopDist,
-            type: 'bar'
-        };
-        
-        var dist7DMA = {
-            name: 'admin7DMA',
-            x: x,
-            y: movingAverage(yDist, 10),
-            type: 'scatter'
-        };
-
-        var adminDaily = {
-            name: 'adminDaily',
-            x: x,
-            y: yAdmin,
-            showgrid:false,
+            y: yPer100,
+            showgrid: false,
             fill: 'tozeroy',
             type: 'bar',
             marker:{
-                color: fillColor(x, maxAdminDate)
+                color: fillColor(x)
             },
-        };
-
-        var admin7DMA = {
-            name: 'admin7DMA',
-            x: x,
-            y: movingAverage(yAdmin, 7),
-            type: 'scatter'
         };
 
         var layout = {
@@ -224,13 +121,103 @@ Promise.all([
                 tickfont: {
                     size: 11
                 },
-                showgrid:false
+                showgrid: false
             },
             xaxis: { 
                 tickfont: {
                     size: 11
                 },
-                showgrid:false
+                showgrid: false
+            },
+            autosize: true,
+            autoscale: false,
+            //width: 600,
+            //height: 300,
+            margin: {
+                l: 40,
+                r: 40,
+                b: 120,
+                t: 40,
+                pad: 2
+            },
+            title: {
+                text:'Global Total Doses Per 100 Persons: Canada Ranks #' + canadaRank + ' at ' + canadaPer100,
+                font: {
+                    weight: 'bold',
+                    size: 14,
+                    family: 'Arial, Helvetica, sans-serif',
+                },
+            },
+        }
+
+        var data = [per100];
+        Plotly.newPlot('divWorld', data, layout);
+
+    }
+
+    function createCanadaPer100Chart() {
+
+        // CREATE PER 100 CHART
+
+        // filter vaccinations current record dataset to Canada only
+        var vacCurrentCanada = vacDetailLoc.filter(function(d) { 
+            return d.location == "Canada";
+        });
+
+        // get current daily doses per 100
+        var currentDailyDP100 = vacCurrentCanada[vacCurrentCanada.length-1].daily_vaccinations_per_hundred;
+        var previousDailyDP100 = vacCurrentCanada[vacCurrentCanada.length-2].daily_vaccinations_per_hundred;
+        var diffDailyDP100 = currentDailyDP100 - previousDailyDP100
+
+        // create divs, para for Canada chart
+        var divCanada = 'divCanada';
+        var divTitle = divCanada + 'Title';
+        var divText = document.createElement("h4");
+        var divChart = document.createElement("div");
+        divChart.id = divCanada;
+        divText.id = divTitle;
+        var chartDetails = "Canada Daily Doses Per 100 Persons: Tracking Canada's Daily Dose Administration";
+
+        divText.innerHTML  = chartDetails;
+        document.getElementById('div_canada_daily_per100_chart').append(divText);
+        document.getElementById('div_canada_daily_per100_chart').append(divChart);
+
+        // create x and y axis data sets
+        var x = [];
+        var yPer100 = [];
+ 
+        // create axes x and y arrays
+        for (var i=0; i<vacCurrentCanada.length; i++) {
+            var row = vacCurrentCanada[i];
+            x.push(row['date']);
+           // yPer100.push((row['daily_vaccinations_per_million'] / 10000).toFixed(3));
+            yPer100.push(row['daily_vaccinations_per_hundred']);
+        }
+
+        var per100 = {
+            name: 'Doses Per 100',
+            x: x,
+            y: yPer100,
+            showgrid: false,
+            //fill: 'tozeroy',
+            type: 'scatter',
+            marker:{
+                color: fillColor(x)
+            },
+        };
+
+        var layout = {
+            yaxis: { 
+                tickfont: {
+                    size: 11
+                },
+                showgrid: false
+            },
+            xaxis: { 
+                tickfont: {
+                    size: 11
+                },
+                showgrid: false
             },
             autosize: true,
             autoscale: false,
@@ -240,196 +227,271 @@ Promise.all([
                 l: 30,
                 r: 40,
                 b: 80,
-                t: 25,
+                t: 40,
                 pad: 2
             },
             title: {
-                text:'Canada COVID-19 Vaccine Dose Administration - blue: actual / gray: required to meet Sep 30 goal',
+                text:'Canada Daily Doses Per 100 Persons: ' + currentDailyDP100 + ' (' +  ((currentDailyDP100 < previousDailyDP100) ? 'Down' : 'Up') + ' From Previous Day ' + previousDailyDP100 + ')',
                 font: {
-                    weight: "bold",
-                    size: 14
+                    weight: 'bold',
+                    size: 14,
+                    family: 'Arial, Helvetica, sans-serif',
                 },
             },
         }
 
-        // create divs, para for Canada chart
-        var canadaDiv = 'canadaDiv';
-        var canadaTitle = 'title' + canadaDiv;
-        var titleCanadaChart = document.createElement("p");
-        var div_canada_chartItem = document.createElement("div");
-        div_canada_chartItem.id = canadaDiv;
-        titleCanadaChart.id = canadaTitle;
-        var chartDetails = '<ul class="list-unstyled chart-details"><li><h1>Canada</h1></li><li>Age 15+ Popluation: ' + population.toLocaleString() + '</li><li>Doses Available To-Date: ' + distTotalCanada.toLocaleString() + '</li><li>Doses Administered To-Date: ' + adminTotalCanada.toLocaleString() + '</li><li>' + ((adminTotalCanada/distTotalCanada) * 100).toFixed(1) + '% of Available Doses Administered</li><li>' + ((adminTotalCanada / (population * 2)) * 100).toFixed(2) + '% of Age 15+ Population Doses Administered</li><li>Doses Remaining To Meet Goal: ' + ((population * 2) - adminTotalCanada).toLocaleString() + '</li><li>' + parseInt((((population * 2) - adminTotalCanada) / goalDate())).toLocaleString() + ' doses must be adminstered daily, starting today, to meet Sep 30 Age 15+ population vaccination goal.</li></ul>';
-
-        titleCanadaChart.innerHTML  = chartDetails;
-        document.getElementById('div_canada_chart').append(titleCanadaChart);
-        document.getElementById('div_canada_chart').append(div_canada_chartItem);
-
-        var data = [adminDaily];
-        Plotly.newPlot('canadaDiv', data, layout);
+        var data = [per100];
+        Plotly.newPlot('divCanada', data, layout);
 
     }
 
-    function createProvChart() {
-        // CREATE PROV CHART
+    function createCanadaDailyRankChart() {
 
-        // get list of provinces 
-        provListTemp = [];
-        for (var i=0; i<distAdminProvPop.length; i++) {
-            province = distAdminProvPop[i]['province'];
-            provListTemp.push(province);
-        }
-        let provList = [...new Set(provListTemp)];
+        // CREATE CANADA DAILY RANK PER 100 CHART
 
-        // create prov charts by loop through provList to create chart for each prov
-        for (var i=0; i<provList.length; i++) {
+        // filter vaccinations current record dataset to Canada only
+        var vacCurrentCanada = vacDetailLoc.filter(function(d) { 
+            return d.location == "Canada";
+        });
 
-            var provData = distAdminProvPop.filter(function(d) { 
-                return d.province === provList[i];
+        // create vacDates array with unique dates
+        const vacDates = [...new Set(vacDetailLoc.map(item => item.date))];
+
+        // sort vacDates array desc order
+        vacDates.sort(function(a,b) {
+            a = a.split('-').join('');
+            b = b.split('-').join('');
+            //return a > b ? 1 : a < b ? -1 : 0; // asc
+            return a < b ? 1 : a > b ? -1 : 0; // desc
+        });
+
+        // create divs, para for Canada chart
+        var divCanada = 'divCanadaRank';
+        var divTitle = divCanada + 'Title';
+        var divText = document.createElement("h4");
+        var divChart = document.createElement("div");
+        divChart.id = divCanada;
+        divText.id = divTitle;
+        var chartDetails = "Canada Total Doses Per 100 Persons Daily Global Rank: Tracking Canada's Changing Rank Relative To Other Countries";
+
+        divText.innerHTML  = chartDetails;
+        document.getElementById('div_canada_daily_per100_rank_chart').append(divText);
+        document.getElementById('div_canada_daily_per100_rank_chart').append(divChart);
+
+        // create x and y axis data sets
+        var x = [];
+        var yPer100 = [];
+        var yRank = [];
+        var yCount = [];
+        var yPctile = [];
+        var yPctileSorted = [];
+
+        // loop through vacDates, get date and rank, per day into new array
+        // loop through vacDates desc, get max date per country, that is less than loop date
+        // assign max date less than loop date as country's last report date
+
+        for (var i=0; i<vacDates.length; i++) {
+            var loopDate = vacDates[i];
+
+            // filter vacDetailLoc to dates less than loop date
+            var vacDaily = vacDetailLoc.filter(function(d) { 
+                return d.date <= loopDate;
             });
 
-            // ggt dist and admin totals by summing values, and population using max
-            var distTotalProv = provData.reduce((a, b) => +a + +b.dvaccine, 0);
-            var adminTotalProv = provData.reduce((a, b) => +a + +b.avaccine, 0);
-            var population = d3.max(provData.map(d=>d.population));
-            var max_pct_dist_admin = d3.max(provData.map(d=>d.pct_dist_admin));
+            // summarize location by loop date country's max date
+            // recreate equivalent of each day's last observation date
+            var loopLocMaxDate = d3.nest()
+            .key(function(d) { return d.location; })
+            .rollup(function(v) { return {
+                    last_observation_date: d3.max(v, function(d) { return d.date; })
+                };
+            })
+            .entries(vacDaily)
+            .map(function(group) {
+                return {
+                    location: group.key,
+                    last_observation_date: group.value.last_observation_date
+                }
+            });
 
-            // get future data 
-            var futureData = createFutureData(population, maxAdminDate, distTotalProv, adminTotalProv, provList[i]);
+            // concat vacDaily location and date
+            vacDaily.forEach(function(d) {
+                d.concatLocDate = d.location + d.date;
+            });
 
-            // concat actual and future data
-            var dataConcat = provData.concat(futureData);
+            // concat loopLocMaxDate location and date
+            loopLocMaxDate.forEach(function(d) {
+                d.concatLocDate = d.location + d.last_observation_date;
+            });
+            
+            // get total_vaccinations_per_hundred for loopLocMaxDate location and date
+            loopLocMaxDate.forEach(function(d) {
+                d.total_vaccinations_per_hundred = vacDaily.find(x => x.concatLocDate === d.concatLocDate).total_vaccinations_per_hundred;
+            });
 
-            // CREATE PROV CHART
-            // create x and y axis data sets
-            var x = [];
-            var yDist = [];
-            var yAdmin = [];
-            var yPopDist = [];
-            var yPopAdmin = [];
-            var yDistAdmin = [];
+            // order loopLocMaxDate desc by total_vaccinations_per_hundred to get rank
+            loopLocMaxDate.sort((a, b) => {
+                return b.total_vaccinations_per_hundred - a.total_vaccinations_per_hundred;
+            });
 
-            // create axes x and y arrays
-            for (var j=0; j<dataConcat.length; j++) {
-                var row = dataConcat[j];
-                x.push(row['report_date']);
-                yDist.push(parseInt(row['dvaccine']));
-                yAdmin.push(parseInt(row['avaccine']));
-                yPopDist.push(row['pct_pop_dist']);
-                yPopAdmin.push(row['pct_pop_admin']);
-                yDistAdmin.push(row['pct_dist_admin']);
+            // get loopLocMaxDate location rank
+            var canadaRank = loopLocMaxDate.findIndex(x => x.location === "Canada") + 1;
+            var canadaPer100 = loopLocMaxDate.find(x => x.location === "Canada").total_vaccinations_per_hundred;
+
+            // add loopLocMaxDate x and y to chart array
+            x.push(loopDate);
+            yRank.push(canadaRank);
+            yPer100.push(canadaPer100);
+            yCount.push(loopLocMaxDate.length);
+
+            var maxRank = Math.max(...yRank);
+            var maxCount = Math.max(...yCount);
+            var maxPer100 = Math.max(...yPer100);
+
+            /*
+            // sort yPctile values asc to use them to calculate percentile
+            var yRankSorted = yRank.sort((a, b) => {
+                return a - b;
+            });
+
+            // loop through yPctile asc to find first value greater than canadaRank
+            for (var i=1; i<yRankSorted.length; i++) {
+                console.log(i, yRankSorted[i], canadaRank, yRankSorted.length);
+                if (yRankSorted[i] > canadaRank) {
+                    var pctile = parseInt((i / yRankSorted.length) * 100);
+                    break;
+                }
             }
-
-            // create Prov chart
-            var pctDistAdmin = {
-                name: 'pctDistAdmin',
-                x: x,
-                y: yDistAdmin,
-                type: 'bar',
-            };
-            
-            var pctPopAdmin = {
-                name: 'pctPopAdmin',
-                x: x,
-                y: yPopAdmin,
-                type: 'bar'
-            };
-    
-            var pctDistAdmin = {
-                name: 'pctPopDist',
-                x: x,
-                y: yPopDist,
-                type: 'bar'
-            };
-            
-            var dist7DMA = {
-                name: 'admin7DMA',
-                x: x,
-                y: movingAverage(yDist, 10),
-                type: 'scatter'
-            };
-    
-            var adminDaily = {
-                name: 'adminDaily',
-                x: x,
-                y: yAdmin,
-                type: 'bar',
-                marker:{
-                    color: fillColor(x, maxAdminDate)
-                },
-            };
-    
-            var admin7DMA = {
-                name: 'admin7DMA',
-                x: x,
-                y: movingAverage(yAdmin, 7),
-                type: 'scatter'
-            };
-
-            var layout = {
-                yaxis: { 
-                    tickfont: {
-                        size: 11
-                    },
-                    showgrid:false
-                },
-                xaxis: { 
-                    tickfont: {
-                        size: 11
-                    },
-                    showgrid:false
-                },
-                autosize: true,
-                autoscale: false,
-                //width: 600,
-                //height: 300,
-                margin: {
-                    l: 30,
-                    r: 40,
-                    b: 80,
-                    t: 25,
-                    pad: 2
-                },
-                title: {
-                    text: provList[i] + ' COVID-19 Vaccine Dose Administration - blue: actual / gray: required to meet Sep 30 goal',
-                    font: {
-                        weight: "bold",
-                        size: 14
-                    },
-                },
-            }
-
-            // create divs, para for each province chart
-            var provDiv = 'provDiv' + i;
-            var provTitle = 'title' + provDiv;
-            var titleProvChart = document.createElement("p");
-            var div_prov_chartItem = document.createElement("div");
-            div_prov_chartItem.id = provDiv;
-            titleProvChart.id = provTitle;
-            var chartDetails = '<ul class="list-unstyled"><li><h1>' + provList[i] + '</h1></li><li>Age 15+ Popluation: ' + population.toLocaleString() + '</li><li>Doses Available To-Date: ' + distTotalProv.toLocaleString() + '</li><li>Doses Administered To-Date: ' + adminTotalProv.toLocaleString() + '</li><li>' + ((adminTotalProv/distTotalProv) * 100).toFixed(1) + '% of Available Doses Administered</li><li>' + ((adminTotalProv / (population * 2)) * 100).toFixed(2) + '% of Age 15+ Population Doses Administered</li><li>Doses Remaining To Meet Goal: ' + ((population * 2) - adminTotalProv).toLocaleString() + '</li><li>' + parseInt((((population * 2) - adminTotalProv) / goalDate())).toLocaleString() + ' doses must be adminstered daily, starting today, to meet Sep 30 full population vaccination goal.</li></ul>';
-
-            titleProvChart.innerHTML  = chartDetails;
-            document.getElementById('div_prov_chart').append(titleProvChart);
-            document.getElementById('div_prov_chart').append(div_prov_chartItem);
-            
-            var data = [adminDaily];
-            Plotly.newPlot(provDiv, data, layout);
-
+            yPctile.push(pctile);
+            */
         }
+
+        var globalRank = {
+            name: 'Global Rank',
+            x: x,
+            y: yRank,
+            //showgrid: false,
+            type: 'scatter',
+            marker:{
+                color: fillColor(x)
+            },
+        };
+
+        var countryCount = {
+            name: 'Doses Per 100 Persons',
+            x: x,
+            y: yPer100,
+            yaxis: 'y2',
+            //showgrid: false,
+            type: 'bar',
+            marker:{
+                color: 'rgba(204,204,204, .9)' // gray
+            },
+        };
+
+        var layout = {
+            yaxis: { 
+                title: {
+                    text: 'Canada Global Rank',
+                    font: {
+                        size: 12,
+                        family: 'Arial, Helvetica, sans-serif',
+                        color: '#333',
+                    },
+                },
+                tickfont: {
+                    size: 11
+                },
+                range:[0, roundUp10(maxRank)],
+                showgrid: false,
+                overlaying: 'y2',
+            },
+            yaxis2: {
+                title: {
+                    text: 'Doses Per 100 Persons',
+                    font: {
+                        size: 12,
+                        family: 'Arial, Helvetica, sans-serif',
+                        color: '#333',
+                    },
+                },
+                tickfont: {
+                    size: 11
+                },
+                range:[0, maxPer100],
+                showgrid: false,
+                // overlaying: 'y',
+                side: 'right'
+            },
+            xaxis: { 
+                tickfont: {
+                    size: 11
+                },
+                showgrid: false
+            },
+            autosize: true,
+            autoscale: false,
+            //width: 600,
+            //height: 300,
+            margin: {
+                l: 40,
+                r: 40,
+                b: 80,
+                t: 40,
+                pad: 2
+            },
+            title: {
+                text:'Canada Global Ranking of Doses Per 100 Persons',
+                font: {
+                    weight: 'bold',
+                    size: 14,
+                    family: 'Arial, Helvetica, sans-serif',
+                },
+            },
+            showlegend: true,
+            legend: {
+                "orientation": "h",
+                x: .3,
+                xanchor: 'left',
+                y: 1,
+                bgcolor: 'rgba(0,0,0,0)',
+                font: {
+                    family: 'Arial, Helvetica, sans-serif',
+                    size: 10,
+                    color: '#666',
+                },
+            },
+        }
+
+        var data = [globalRank, countryCount];
+        Plotly.newPlot('divCanadaRank', data, layout);
+
     }
 
-     // create charts
-    // call createCharts when page loads
-    createCanadaChart();
-    createProvChart();
+    // call charts when page loads
+    createGlobalPer100Chart();
+    createCanadaPer100Chart();
+    createCanadaDailyRankChart();
 
 });
+
+// functions
+
+function rankPercentile(arrLen, rank) {
+    
+
+    return percentile
+}
+
+function roundUp10(x) {
+        return Math.ceil(x / 10) * 10;
+}
 
 // left join function used to join datasets
 function equijoinWithDefault(xs, ys, primary, foreign, sel, def) {
     const iy = ys.reduce((iy, row) => iy.set(row[foreign], row), new Map);
     return xs.map(row => typeof iy.get(row[primary]) !== 'undefined' ? sel(row, iy.get(row[primary])): sel(row, def));
-};
+}
 
 // reformat date to date object
 function reformatDate(oldDate) {
@@ -439,23 +501,50 @@ function reformatDate(oldDate) {
     return newDate
 }
 
-// moving average function 
-function movingAverage(values, N) {
-    let i = 0;
-    let sum = 0;
-    const means = new Float64Array(values.length).fill(NaN);
-    for (let n = Math.min(N - 1, values.length); i < n; ++i) {
-        sum += values[i];
-    }
-    for (let n = values.length; i < n; ++i) {
-        sum += values[i];
-        means[i] = parseInt(sum / N);
-        sum -= values[i - N + 1];
-    }
-    return means;
+// lookup array to return standard vaccine name
+var vaccine_names  = [
+    {orig_name: "CNBG, Sinovac", new_name: "Sinovac, CNBG"},
+    {orig_name: "Covaxin, Covishield", new_name: "Covaxin, Covishield"},
+    {orig_name: "Moderna, Pfizer/BioNTech", new_name: "Pfizer/BioNTech, Moderna"},
+    {orig_name: "Oxford/AstraZeneca, Pfizer/BioNTech", new_name: "Pfizer/BioNTech, Oxford/AstraZeneca"},
+    {orig_name: "Pfizer/BioNTech", new_name: "Pfizer/BioNTech"},
+    {orig_name: "Pfizer/BioNTech, Sinopharm", new_name: "Pfizer/BioNTech, Sinopharm"},
+    {orig_name: "Sinopharm", new_name: "Sinopharm"},
+    {orig_name: "Sinovac", new_name: "Sinovac"},
+    {orig_name: "Sputnik V", new_name: "Sputnik V"},
+    {orig_name: "Pfizer/BioNTech, Pifzer/BioNTech", new_name: "Pfizer/BioNTech"}
+]
+
+function vaccineAlt(vaccine) {
+    var x = vaccine_names.find(x => x.orig_name === vaccine);
+    if (typeof x === 'undefined'){
+        new_name  = vaccine
+    } else {
+        new_name = x.new_name
+    } 
+    return new_name
 }
 
-//hideShowDiv('read_more_div');
+function vaccineGroup(vaccine) {
+    if (vaccine.includes("Pfizer") || vaccine.includes("Moderna")) {
+        return "Pfizer or Moderna"
+    } {
+        return "Not Pfizer or Moderna"
+    }
+}
+
+// assign bar color based on x value
+function fillColor(x, location) {
+    colors = [];
+    for (var i=0; i<x.length; i++) {
+        if (x[i] == "Canada") {
+            colors.push('rgba(49,130,189, .9)'); // blue
+        } else {
+            colors.push('rgba(204,204,204, .9)'); // gray
+        }
+    }
+    return colors
+}
 
 function hideShowDiv(id) {
    var e = document.getElementById(id);
