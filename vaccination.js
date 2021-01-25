@@ -87,7 +87,7 @@ Promise.all([
         var divChart = document.createElement("div");
         divChart.id = divWorld;
         divText.id = divTitle;
-        var chartDetails = 'Global Ranking Of Total Doses Per 100 Persons: Tracking How Canada Compares to Other Countries';
+        var chartDetails = 'Global Total Doses Per 100 Persons: Tracking How Canada Compares to Other Countries';
 
         divText.innerHTML  = chartDetails;
         document.getElementById('div_world_total_per100_chart').append(divText);
@@ -272,7 +272,7 @@ Promise.all([
         var divChart = document.createElement("div");
         divChart.id = divCanada;
         divText.id = divTitle;
-        var chartDetails = "Canada Total Doses Per 100 Persons Daily Global Rank: Tracking Canada's Changing Rank Relative To Other Countries";
+        var chartDetails = "Canada Daily Global Rank of Total Doses Per 100 Persons: Tracking Canada's Changing Rank Relative To Other Countries";
 
         divText.innerHTML  = chartDetails;
         document.getElementById('div_canada_daily_per100_rank_chart').append(divText);
@@ -441,7 +441,7 @@ Promise.all([
                 pad: 2
             },
             title: {
-                text:'Canada Global Ranking of Doses Per 100 Persons',
+                text:'Canada Daily Global Rank of Doses Per 100 Persons',
                 font: {
                     weight: 'bold',
                     size: 14,
