@@ -379,9 +379,9 @@ Promise.all([
         };
 
         var countryCount = {
-            name: 'Doses Per 100 Persons',
+            name: '# Countries',
             x: x,
-            y: yPer100,
+            y: yCount,
             yaxis: 'y2',
             //showgrid: false,
             type: 'bar',
@@ -419,7 +419,7 @@ Promise.all([
                 tickfont: {
                     size: 11
                 },
-                range:[0, maxPer100],
+                range:[0, roundUp10(maxCount)],
                 showgrid: false,
                 // overlaying: 'y',
                 side: 'right'
