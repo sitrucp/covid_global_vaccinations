@@ -165,7 +165,7 @@ Promise.all([
             return d.location == "Canada";
         });
 
-        // get current daily doses per 100
+        // get current & previous daily doses per 100, calculate difference
         var currentDailyDP100 = vacCurrentCanada[vacCurrentCanada.length-1].daily_vaccinations_per_hundred;
         var previousDailyDP100 = vacCurrentCanada[vacCurrentCanada.length-2].daily_vaccinations_per_hundred;
         var diffDailyDP100 = currentDailyDP100 - previousDailyDP100
@@ -191,7 +191,6 @@ Promise.all([
         for (var i=0; i<vacCurrentCanada.length; i++) {
             var row = vacCurrentCanada[i];
             x.push(row['date']);
-           // yPer100.push((row['daily_vaccinations_per_million'] / 10000).toFixed(3));
             yPer100.push(row['daily_vaccinations_per_hundred']);
         }
 
@@ -258,14 +257,6 @@ Promise.all([
         // create vacDates array with unique dates
         const vacDates = [...new Set(vacDetailLoc.map(item => item.date))];
 
-        // sort vacDates array desc order
-        vacDates.sort(function(a,b) {
-            a = a.split('-').join('');
-            b = b.split('-').join('');
-            //return a > b ? 1 : a < b ? -1 : 0; // asc
-            return a < b ? 1 : a > b ? -1 : 0; // desc
-        });
-
         // create divs, para for Canada chart
         var divCanada = 'divCanadaRank';
         var divTitle = divCanada + 'Title';
@@ -287,13 +278,20 @@ Promise.all([
         var yPctile = [];
         var yPctileSorted = [];
 
-        // loop through vacDates, get date and rank, per day into new array
+        // sort vacDates array desc order to be able to loop through them desc below
+        vacDates.sort(function(a,b) {
+            a = a.split('-').join('');
+            b = b.split('-').join('');
+            //return a > b ? 1 : a < b ? -1 : 0; // asc
+            return a < b ? 1 : a > b ? -1 : 0; // desc
+        });
+
+        // create the daily ranks and country counts:
         // loop through vacDates desc, get max date per country, that is less than loop date
         // assign max date less than loop date as country's last report date
 
         for (var i=0; i<vacDates.length; i++) {
             var loopDate = vacDates[i];
-
             // filter vacDetailLoc to dates less than loop date
             var vacDaily = vacDetailLoc.filter(function(d) { 
                 return d.date <= loopDate;
@@ -337,40 +335,46 @@ Promise.all([
 
             // get loopLocMaxDate location rank
             var canadaRank = loopLocMaxDate.findIndex(x => x.location === "Canada") + 1;
-            var canadaPer100 = loopLocMaxDate.find(x => x.location === "Canada").total_vaccinations_per_hundred;
+            var canadaPer100 = loopLocMaxDate.find(x => x.location === "Canada").total_vaccinations_per_hundred; // alt y2 value not used now
 
             // add loopLocMaxDate x and y to chart array
             x.push(loopDate);
             yRank.push(canadaRank);
-            yPer100.push(canadaPer100);
+            yPer100.push(canadaPer100); // alt y2 value not used now
             yCount.push(loopLocMaxDate.length);
 
+            // get max values for y axis range 
             var maxRank = Math.max(...yRank);
             var maxCount = Math.max(...yCount);
-            var maxPer100 = Math.max(...yPer100);
+            var maxPer100 = Math.max(...yPer100); // alt y2 value not used now
 
-            /*
             // sort yPctile values asc to use them to calculate percentile
-            var yRankSorted = yRank.sort((a, b) => {
+            // create deep copy to unlink from yRank
+            const yRankSorted = JSON.parse(JSON.stringify(yRank))
+            yRankSorted.sort((a, b) => {
                 return a - b;
             });
 
-            // loop through yPctile asc to find first value greater than canadaRank
-            for (var i=1; i<yRankSorted.length; i++) {
-                console.log(i, yRankSorted[i], canadaRank, yRankSorted.length);
+            /*
+            // calculate rank percentile
+            // loop through yRankSorted to find first value greater than canadaRank
+            for (var i=0; i<yRankSorted.length; i++) {
                 if (yRankSorted[i] > canadaRank) {
-                    var pctile = parseInt((i / yRankSorted.length) * 100);
-                    break;
+                    var pctile = parseInt(((i + 1) / yRankSorted.length) * 100);
+                    console.log('yRankSorted[i]: ' + yRankSorted[i], 'yRankSorted.length:' + yRankSorted.length, 'loopDate:' + loopDate, 'canadaPer100: ' + canadaPer100, 'canadaRank:' + canadaRank, 'pctile:' + pctile);
+                    yPctile.push(pctile);
+                } else {
                 }
             }
-            yPctile.push(pctile);
+            // for end
             */
         }
 
         var globalRank = {
-            name: 'Global Rank',
+            name: 'Canada Rank',
             x: x,
             y: yRank,
+            // y: yPctile, 
             //showgrid: false,
             type: 'scatter',
             marker:{
@@ -409,7 +413,7 @@ Promise.all([
             },
             yaxis2: {
                 title: {
-                    text: 'Doses Per 100 Persons',
+                    text: '# Countries',
                     font: {
                         size: 12,
                         family: 'Arial, Helvetica, sans-serif',
