@@ -38,7 +38,7 @@ Promise.all([
 
     // filter England, Gibralter, North Ireland, Scotland, Wales, World from vaccinations
     const vacDetail = vaccinations.filter(function(d) { 
-        return d.location != "England" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Scotland" && d.location != "Wales" && d.location != "World" && d.location != "European Union";
+        return d.location != "England" && d.location != "European Union" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Scotland" && d.location != "Wales" && d.location != "World";
     });
 
     // create owid_vaccine_alt, vaccines_group columns in locations
@@ -348,9 +348,10 @@ Promise.all([
             var maxCount = Math.max(...yCount);
             var maxPer100 = Math.max(...yPer100); // alt y2 value not used now
 
-            // sort yPctile values asc to use them to calculate percentile
-            // create deep copy to unlink from yRank
+            // create deep copy to unlink from yRank for percentile calc below
             const yRankSorted = JSON.parse(JSON.stringify(yRank))
+
+             // sort yPctile values asc to use them to calculate percentile
             yRankSorted.sort((a, b) => {
                 return a - b;
             });
