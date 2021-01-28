@@ -36,8 +36,6 @@ Promise.all([
         d.daily_vaccinations_per_hundred = (d.daily_vaccinations_per_million / 10000).toFixed(3);
     });
 
-    console.log(vaccinations);
-
     // filter England, Gibralter, North Ireland, Scotland, Wales, World from vaccinations
     const vacDetail = vaccinations.filter(function(d) { 
         return d.location != "England" && d.location != "European Union" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Scotland" && d.location != "Wales" && d.location != "World";
