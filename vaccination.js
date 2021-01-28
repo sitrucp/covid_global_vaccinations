@@ -36,6 +36,8 @@ Promise.all([
         d.daily_vaccinations_per_hundred = (d.daily_vaccinations_per_million / 10000).toFixed(3);
     });
 
+    console.log(vaccinations);
+
     // filter England, Gibralter, North Ireland, Scotland, Wales, World from vaccinations
     const vacDetail = vaccinations.filter(function(d) { 
         return d.location != "England" && d.location != "European Union" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Scotland" && d.location != "Wales" && d.location != "World";
@@ -69,7 +71,7 @@ Promise.all([
     });
 
     function createGlobalPer100Chart() {
-
+        
         // CREATE PER 100 CHART
         // order vaccinationMaxDate desc by total_vaccinations_per_hundred
         vacCurrent.sort((a, b) => {
@@ -91,8 +93,8 @@ Promise.all([
         var countryCount = vacCurrent.length
 
         divText.innerHTML  = chartDetails;
-        document.getElementById('div_world_total_per100_chart').append(divText);
-        document.getElementById('div_world_total_per100_chart').append(divChart);
+        document.getElementById('div_global_per100_chart').append(divText);
+        document.getElementById('div_global_per100_chart').append(divChart);
 
         // create x and y axis data sets
         var x = [];
@@ -156,8 +158,8 @@ Promise.all([
 
     }
 
-    function createCanadaPer100Chart() {
-
+    function createCanadaDailyPer100Chart() {
+    
         // CREATE PER 100 CHART
 
         // filter vaccinations current record dataset to Canada only
@@ -186,7 +188,7 @@ Promise.all([
         // create x and y axis data sets
         var x = [];
         var yPer100 = [];
- 
+
         // create axes x and y arrays
         for (var i=0; i<vacCurrentCanada.length; i++) {
             var row = vacCurrentCanada[i];
@@ -267,8 +269,8 @@ Promise.all([
         var chartDetails = "Tracking Canada's Changing Rank Relative To Other Countries: Canada Daily Global Rank of Total Doses Per 100 Persons";
 
         divText.innerHTML  = chartDetails;
-        document.getElementById('div_canada_daily_per100_rank_chart').append(divText);
-        document.getElementById('div_canada_daily_per100_rank_chart').append(divChart);
+        document.getElementById('div_canada_daily_rank_chart').append(divText);
+        document.getElementById('div_canada_daily_rank_chart').append(divChart);
 
         // create x and y axis data sets
         var x = [];
@@ -332,15 +334,18 @@ Promise.all([
             loopLocMaxDate.sort((a, b) => {
                 return b.total_vaccinations_per_hundred - a.total_vaccinations_per_hundred;
             });
+            
+            
 
             // get loopLocMaxDate location rank
             var canadaRank = loopLocMaxDate.findIndex(x => x.location === "Canada") + 1;
-            var canadaPer100 = loopLocMaxDate.find(x => x.location === "Canada").total_vaccinations_per_hundred; // alt y2 value not used now
+
+            //var canadaPer100 = loopLocMaxDate.find(x => x.location === "Canada").total_vaccinations_per_hundred; // alt y2 value not used now
 
             // add loopLocMaxDate x and y to chart array
             x.push(loopDate);
             yRank.push(canadaRank);
-            yPer100.push(canadaPer100); // alt y2 value not used now
+            //yPer100.push(canadaPer100); // alt y2 value not used now
             yCount.push(loopLocMaxDate.length);
 
             // get max values for y axis range 
@@ -476,8 +481,9 @@ Promise.all([
 
     // call charts when page loads
     createGlobalPer100Chart();
-    createCanadaPer100Chart();
-    createCanadaDailyRankChart();
+    //createCanadaDailyRankChart();
+    //createCanadaDailyPer100Chart();
+    
 
 });
 
