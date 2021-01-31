@@ -128,7 +128,8 @@ Promise.all([
                 tickfont: {
                     size: 11
                 },
-                showgrid: false
+                showgrid: false,
+                tickmode: 'linear',
             },
             autosize: true,
             autoscale: false,
