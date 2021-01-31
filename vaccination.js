@@ -479,7 +479,7 @@ Promise.all([
 
     // call charts when page loads
     createGlobalPer100Chart();
-    createCanadaDailyRankChart();
+    //createCanadaDailyRankChart();
     createCanadaDailyPer100Chart();
     
 
