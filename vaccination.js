@@ -334,8 +334,6 @@ Promise.all([
                 return b.total_vaccinations_per_hundred - a.total_vaccinations_per_hundred;
             });
             
-            
-
             // get loopLocMaxDate location rank
             var canadaRank = loopLocMaxDate.findIndex(x => x.location === "Canada") + 1;
 
@@ -352,15 +350,15 @@ Promise.all([
             var maxCount = Math.max(...yCount);
             var maxPer100 = Math.max(...yPer100); // alt y2 value not used now
 
+             /*
             // create deep copy to unlink from yRank for percentile calc below
             const yRankSorted = JSON.parse(JSON.stringify(yRank))
-
+           
              // sort yPctile values asc to use them to calculate percentile
             yRankSorted.sort((a, b) => {
                 return a - b;
             });
-
-            /*
+            
             // calculate rank percentile
             // loop through yRankSorted to find first value greater than canadaRank
             for (var i=0; i<yRankSorted.length; i++) {
@@ -373,6 +371,7 @@ Promise.all([
             }
             // for end
             */
+
         }
 
         var globalRank = {
@@ -480,8 +479,8 @@ Promise.all([
 
     // call charts when page loads
     createGlobalPer100Chart();
-    //createCanadaDailyRankChart();
-    //createCanadaDailyPer100Chart();
+    createCanadaDailyRankChart();
+    createCanadaDailyPer100Chart();
     
 
 });
