@@ -38,7 +38,7 @@ Promise.all([
 
     // filter England, Gibralter, North Ireland, Scotland, Wales, World from vaccinations
     const vacDetail = vaccinations.filter(function(d) { 
-        return d.location != "England" && d.location != "European Union" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Scotland" && d.location != "Wales" && d.location != "World";
+        return d.location != "England" && d.location != "European Union" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Isle of Man" && d.location != "Scotland" && d.location != "Wales" && d.location != "World";
     });
 
     // create owid_vaccine_alt, vaccines_group columns in locations
