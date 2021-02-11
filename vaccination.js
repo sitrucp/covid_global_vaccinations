@@ -139,15 +139,13 @@ Promise.all([
                 l: 40,
                 r: 40,
                 b: 120,
-                t: 40,
+                t: 80,
                 pad: 2
             },
             title: {
-                text:'Global Total Doses Per 100 Persons: Canada ' + canadaPer100 + ' Ranks ' + canadaRank + ' of ' + countryCount + ' countries',
+                text:'Global Total Doses Per 100 Persons: <br> Canada ' + canadaPer100 + ' Ranks ' + canadaRank + ' of ' + countryCount + ' countries',
                 font: {
-                    weight: 'bold',
-                    size: 14,
-                    family: 'Arial, Helvetica, sans-serif',
+                    size: 14
                 },
             },
         }
@@ -228,15 +226,13 @@ Promise.all([
                 l: 30,
                 r: 40,
                 b: 80,
-                t: 40,
+                t: 80,
                 pad: 2
             },
             title: {
-                text:'Canada Daily Doses Per 100 Persons: ' + currentDailyDP100 + ' (' +  ((currentDailyDP100 < previousDailyDP100) ? 'Down' : 'Up') + ' From Previous Day ' + previousDailyDP100 + ')',
+                text:'Canada Daily Doses Per 100 Persons: <br>' + currentDailyDP100 + ' (' +  ((currentDailyDP100 < previousDailyDP100) ? 'Down' : 'Up') + ' From Previous Day ' + previousDailyDP100 + ')',
                 font: {
-                    weight: 'bold',
-                    size: 14,
-                    family: 'Arial, Helvetica, sans-serif',
+                    size: 14
                 },
             },
         }
@@ -303,7 +299,7 @@ Promise.all([
             var loopLocMaxDate = d3.nest()
             .key(function(d) { return d.location; })
             .rollup(function(v) { return {
-                    last_observation_date: d3.max(v, function(d) { return d.date; })
+                last_observation_date: d3.max(v, function(d) { return d.date; })
                 };
             })
             .entries(vacDaily)
@@ -337,12 +333,19 @@ Promise.all([
             // get loopLocMaxDate location rank
             var canadaRank = loopLocMaxDate.findIndex(x => x.location === "Canada") + 1;
 
-            //var canadaPer100 = loopLocMaxDate.find(x => x.location === "Canada").total_vaccinations_per_hundred; // alt y2 value not used now
+            if (loopLocMaxDate.findIndex(x => x.location === "Canada") > -1) {
+                var canadaPer100 = loopLocMaxDate.find(x => x.location === "Canada").total_vaccinations_per_hundred; // alt y2 value not used now
+            } else {
+                var canadaPer100 = ''; 
+            }
+
+            //console.log(loopDate, loopLocMaxDate);
+            //console.log(loopDate,canadaPer100,canadaRank,loopLocMaxDate.length);
 
             // add loopLocMaxDate x and y to chart array
             x.push(loopDate);
             yRank.push(canadaRank);
-            //yPer100.push(canadaPer100); // alt y2 value not used now
+            yPer100.push(canadaPer100); // alt y2 value not used now
             yCount.push(loopLocMaxDate.length);
 
             // get max values for y axis range 
@@ -403,9 +406,7 @@ Promise.all([
                 title: {
                     text: 'Canada Global Rank',
                     font: {
-                        size: 12,
-                        family: 'Arial, Helvetica, sans-serif',
-                        color: '#333',
+                        size: 12
                     },
                 },
                 tickfont: {
@@ -419,9 +420,7 @@ Promise.all([
                 title: {
                     text: '# Countries',
                     font: {
-                        size: 12,
-                        family: 'Arial, Helvetica, sans-serif',
-                        color: '#333',
+                        size: 12
                     },
                 },
                 tickfont: {
@@ -452,9 +451,7 @@ Promise.all([
             title: {
                 text:'Canada Daily Global Rank of Doses Per 100 Persons',
                 font: {
-                    weight: 'bold',
-                    size: 14,
-                    family: 'Arial, Helvetica, sans-serif',
+                    size: 14
                 },
             },
             showlegend: true,
@@ -465,9 +462,7 @@ Promise.all([
                 y: 1,
                 bgcolor: 'rgba(0,0,0,0)',
                 font: {
-                    family: 'Arial, Helvetica, sans-serif',
-                    size: 10,
-                    color: '#666',
+                    size: 10
                 },
             },
         }
