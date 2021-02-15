@@ -116,7 +116,7 @@ Promise.all([
         var divChart = document.createElement("div");
         divChart.id = divCanada;
         var chartTitle = "Tracking How Canada Compares To Other Countries: Global Total Doses Per 100 Persons";
-        var chartDesc = 'Shows Canada\'s relative ranking by total doses per 100 persons for all countries currently administering vaccines in OWID dataset. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data.';
+        var chartDesc = 'Shows Canada\'s relative ranking by total doses per 100 persons compared to all countries currently in OWID dataset.';
         divTitle.innerHTML  = chartTitle;
         divDesc.innerHTML  = chartDesc;
         document.getElementById('div_global_per100_chart').append(divTitle);
