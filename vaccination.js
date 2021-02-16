@@ -27,10 +27,10 @@ Promise.all([
     var updateTime = data[3];
 
     // get update time from working group repository
-    lastUpdated = updateTime.columns[0];
-    
+    lastUpdated = updateTime.columns[0].replace('T', ' ').slice(0, -3) + ' EST';
+
     // write last updated time to index page
-    document.getElementById('last_update').innerHTML += ' <small class="text-muted">Data Last Updated: ' + lastUpdated + '</small>';
+    document.getElementById('last_update').innerHTML += ' <small class="text-muted">Data update: ' + lastUpdated + '</small>';
 
     // create daily vaccinations per 100 column & reformatted date for sorting
     vaccinations.forEach(function(d) {
