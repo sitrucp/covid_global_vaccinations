@@ -107,9 +107,9 @@ Promise.all([
         return d.date == d.last_observation_date;
     });
 
+
+    // CREATE PER 100 CHART
     function createGlobalPer100Chart() {
-        
-        // CREATE PER 100 CHART
         // order vaccinationMaxDate desc by total_vaccinations_per_hundred
         vacCurrent.sort((a, b) => {
             return b.total_vaccinations_per_hundred_filled - a.total_vaccinations_per_hundred_filled;
@@ -196,10 +196,8 @@ Promise.all([
 
     }
 
+    // CREATE CANADA DAILY RANK PER 100 CHART
     function createCanadaDailyRankChart() {
-
-        // CREATE CANADA DAILY RANK PER 100 CHART
-
         // create divs, para for Canada chart
         var divCanada = 'divCanadaRank';
         var divTitle = document.createElement("h4");
@@ -278,16 +276,14 @@ Promise.all([
                 return b.total_vaccinations_per_hundred_filled - a.total_vaccinations_per_hundred_filled;
             });
 
-            // get loopLocMaxDate total_vaccinations_per_hundred rank
-            // owid only has canada data from jan 12 
+            // get rank only for post jan 11 dates eg owid Canada data only from jan 12
             if (loopDate.split('-').join('') > '20210111') {
                 var canadaRank = loopLocMaxDate.findIndex(x => x.location === "Canada") + 1;
-                // add loopLocMaxDate x and y to chart array
-                x.push(loopDate);
                 yRank.push(canadaRank);
-                yCtryCount.push(loopLocMaxDate.length);
             } 
-
+            // get x array and country count array for all dates
+            x.push(loopDate);
+            yCtryCount.push(loopLocMaxDate.length);
         }
 
          // get max values for y axis range 
@@ -374,10 +370,8 @@ Promise.all([
     }
 
 
+    // CREATE DAILY PER 100 CHART
     function createCanadaDailyPer100Chart() {
-    
-        // CREATE PER 100 CHART
-
         // filter vaccinations current record dataset to Canada only
         var vacCurrentCanada = vacDetailLoc.filter(function(d) { 
             return d.location == "Canada";
