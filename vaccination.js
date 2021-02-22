@@ -4,16 +4,20 @@ var file_update_time = "https://raw.githubusercontent.com/owid/COVID-19-data/mas
 
 var file_vaccinations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/vaccinations.csv";
 
+// get canada working group vaccine data for pre-jan 12 not included in owid dataset
+var file_admin_canada = "https://raw.githubusercontent.com/ishaberry/Covid19Canada/master/timeseries_canada/vaccine_administration_timeseries_canada.csv";
+
 var file_locations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/locations.csv";
 
 // owid population file
 //var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_2020.csv"; 
 
-// population file
+// statscan population file
 var file_population = "https://raw.githubusercontent.com/sitrucp/covid_global_vaccinations/master/population.csv";
 
 Promise.all([
     d3.csv(file_vaccinations),
+    d3.csv(file_admin_canada),
     d3.csv(file_locations),
     d3.csv(file_population),
     d3.csv(file_update_time)
@@ -21,10 +25,11 @@ Promise.all([
     //everthing else below is in d3 promise scope
 
     // get data sets from promise
-    var vaccinations = data[0];
-    var locations = data[1];
-    var population = data[2];
-    var updateTime = data[3];
+    var arrVaccinations = data[0];
+    var arrAdminCanada = data[1];
+    var arrLocations = data[2];
+    var arrPopulation = data[3];
+    var updateTime = data[4];
 
     // get update time from working group repository
     lastUpdated = updateTime.columns[0].replace('T', ' ').slice(0, -3) + ' EST';
@@ -33,13 +38,19 @@ Promise.all([
     document.getElementById('last_update').innerHTML += ' <small class="text-muted">Data updated: ' + lastUpdated + '</small>';
 
     // create daily vaccinations per 100 column & reformatted date for sorting
-    vaccinations.forEach(function(d) {
+    arrVaccinations.forEach(function(d) {
         d.daily_vaccinations_per_hundred = (d.daily_vaccinations_per_million / 10000).toFixed(3);
         d.dateSort = d.date.split('-').join('');
     });
 
+    // get canada working group vaccine data for pre-jan 12 not included in owid dataset
+    arrAdminCanada.forEach(function(d) {
+        d.report_date = reformatDate(d.date_vaccine_administered);
+        d.total_vaccinations_per_hundred = d.cumulative_avaccine / (38005238 / 100);
+    });
+
     // created filtered vacDetail array excluding England, Gibralter, North Ireland, Scotland, Wales, World from vaccinations array
-    const vacDetail = vaccinations.filter(function(d) { 
+    const vacDetail = arrVaccinations.filter(function(d) { 
         return d.location != "England" && d.location != "European Union" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Isle of Man" && d.location != "Scotland" && d.location != "Wales" && d.location != "World";
     });
 
@@ -69,15 +80,15 @@ Promise.all([
         i++;
     });
 
-    // create owid_vaccine_alt, vaccines_group columns in locations
-    locations.forEach(function(d) {
+    // create owid_vaccine_alt, vaccines_group columns in arrLocations
+    arrLocations.forEach(function(d) {
         d.owid_vaccine_alt = vaccineAlt(d.vaccines);
         d.vaccines_group = vaccineGroup(d.vaccines);
     });
 
-    // left join population to location
+    // left join arrPopulation to location
     const locationPop = equijoinWithDefault(
-        locations, population, 
+        arrLocations, arrPopulation, 
         "location", "country", 
         ({location, vaccines, owid_vaccine_alt, vaccines_group, last_observation_date}, {population}, ) => 
         ({location, vaccines, owid_vaccine_alt, vaccines_group, last_observation_date, population}), 
@@ -101,12 +112,12 @@ Promise.all([
         // CREATE PER 100 CHART
         // order vaccinationMaxDate desc by total_vaccinations_per_hundred
         vacCurrent.sort((a, b) => {
-            return b.total_vaccinations_per_hundred - a.total_vaccinations_per_hundred;
+            return b.total_vaccinations_per_hundred_filled - a.total_vaccinations_per_hundred_filled;
         });
 
         // Create chart text content
-        var canadaRank = vacCurrent.findIndex(x => x.location ==="Canada") + 1;
-        var canadaPer100 = vacCurrent.find(x => x.location === "Canada").total_vaccinations_per_hundred;
+        var canadaRank = vacCurrent.findIndex(x => x.location === "Canada") + 1;
+        var canadaPer100 = vacCurrent.find(x => x.location === "Canada").total_vaccinations_per_hundred_filled;
         var countryCount = vacCurrent.length;
 
         // create divs, para for chart
@@ -116,13 +127,12 @@ Promise.all([
         var divChart = document.createElement("div");
         divChart.id = divCanada;
         var chartTitle = "Tracking How Canada Compares To Other Countries: Global Total Doses Per 100 Persons";
-        var chartDesc = 'Shows Canada\'s relative ranking by total doses per 100 persons compared to all countries currently in OWID dataset.';
+        var chartDesc = 'Shows Canada\'s relative ranking by total doses per 100 persons compared to all countries currently in OWID dataset. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data.';
         divTitle.innerHTML  = chartTitle;
         divDesc.innerHTML  = chartDesc;
         document.getElementById('div_global_per100_chart').append(divTitle);
         document.getElementById('div_global_per100_chart').append(divDesc);
         document.getElementById('div_global_per100_chart').append(divChart);
-
 
         // create x and y axis data sets
         var x = [];
@@ -132,7 +142,7 @@ Promise.all([
         for (var i=0; i<vacCurrent.length; i++) {
             var row = vacCurrent[i];
             x.push(row['location']);
-            yPer100.push(row['total_vaccinations_per_hundred']);
+            yPer100.push(row['total_vaccinations_per_hundred_filled']);
         }
 
         var per100 = {
@@ -204,7 +214,6 @@ Promise.all([
         document.getElementById('div_canada_daily_rank_chart').append(divDesc);
         document.getElementById('div_canada_daily_rank_chart').append(divChart);
 
-
         // create vacDates array with unique dates to loop through 
         var vacDates = [...new Set(vacDetailLoc.map(item => item.date))];
 
@@ -221,14 +230,11 @@ Promise.all([
         var x = [];
         var yPer100 = [];
         var yRank = [];
-        var yCount = [];
-        var yPctile = [];
-        var yPctileSorted = [];
+        var yCtryCount = [];
 
         // create the daily ranks and country counts:
         // loop through vacDates desc, get max date per country, that is less than loop date
         // assign max date less than loop date as country's last report date
-
         for (var i=0; i<vacDates.length; i++) {
             var loopDate = vacDates[i];
             // filter vacDetailLoc to dates less than loop date
@@ -272,25 +278,21 @@ Promise.all([
                 return b.total_vaccinations_per_hundred_filled - a.total_vaccinations_per_hundred_filled;
             });
 
-                        
             // get loopLocMaxDate total_vaccinations_per_hundred rank
             // owid only has canada data from jan 12 
             if (loopDate.split('-').join('') > '20210111') {
                 var canadaRank = loopLocMaxDate.findIndex(x => x.location === "Canada") + 1;
-            } else {
-                var canadaRank = '';
-            }
-
-            // add loopLocMaxDate x and y to chart array
-            x.push(loopDate);
-            yRank.push(canadaRank);
-            yCount.push(loopLocMaxDate.length);
-
-            // get max values for y axis range 
-            var maxRank = Math.max(...yRank);
-            var maxCount = Math.max(...yCount);
+                // add loopLocMaxDate x and y to chart array
+                x.push(loopDate);
+                yRank.push(canadaRank);
+                yCtryCount.push(loopLocMaxDate.length);
+            } 
 
         }
+
+         // get max values for y axis range 
+         var maxRank = Math.max(...yRank);
+         var maxCount = Math.max(...yCtryCount);
 
         var globalRank = {
             name: 'Canada Rank',
@@ -306,7 +308,7 @@ Promise.all([
         var countryCount = {
             name: '# Countries',
             x: x,
-            y: yCount,
+            y: yCtryCount,
             //showgrid: false,
             type: 'bar',
             marker:{
@@ -491,7 +493,7 @@ function equijoinWithDefault(xs, ys, primary, foreign, sel, def) {
 function reformatDate(oldDate) {
     // 17-12-2020 is working group date format
     var d = (oldDate).split('-');
-    var newDate = new Date(d[1] + '/' + d[0] + '/' + d[2]);
+    var newDate = d[2] + '-' + d[1] + '-' + d[0];
     return newDate
 }
 
