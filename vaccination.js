@@ -15,6 +15,12 @@ var file_locations = "https://raw.githubusercontent.com/owid/COVID-19-data/maste
 // statscan population file
 var file_population = "https://raw.githubusercontent.com/sitrucp/covid_global_vaccinations/master/population.csv";
 
+// define color variables 
+var clrBlue = 'rgba(49,130,189,.9)';
+var clrGray = 'rgba(204,204,204,.9)';
+var clrBlack = 'rgba(0,0,0,.9)';
+var clrWhiteTransparent = 'rgba(255,255,255,0)';
+
 Promise.all([
     d3.csv(file_vaccinations),
     d3.csv(file_admin_canada),
@@ -145,18 +151,23 @@ Promise.all([
             yPer100.push(row['total_vaccinations_per_hundred_filled']);
         }
 
+        // create chart trace
         var trPer100 = {
             name: 'Doses Per 100',
+            hoverlabel: {
+                namelength :-1
+            },
             x: x,
             y: yPer100,
             showgrid: false,
             fill: 'tozeroy',
             type: 'bar',
             marker:{
-                color: fillColor(x)
+                color: fillColor(x) // color Canada bar blue, other bars gray
             },
         };
 
+        // create chart layout
         var layout = {
             yaxis: { 
                 tickfont: {
@@ -196,7 +207,7 @@ Promise.all([
     }
 
 
-    // CREATE CANADA DAILY RANK PER 100 BAR AND LINE CHART
+    // CREATE CANADA DAILY RANK PER 100 CHART
     function createCanadaDailyRankChart() {
         // create divs, para for Canada chart
         var divCanada = 'divCanadaRank';
@@ -293,28 +304,48 @@ Promise.all([
          var maxRank = Math.max(...yRank);
          var maxCount = Math.max(...yCtryCount);
 
+         // create chart traces
         var trGlobalRank = {
             name: 'Canada Rank',
+            hoverlabel: {
+                namelength :-1
+            },
             x: x,
             y: yRank,
-            //showgrid: false,
-            type: 'scatter',
+            type: 'line',
             marker:{
-                color: fillColor(x)
+                color: clrBlue
+            },
+        };
+
+        var trRelRank = {
+            name: 'Relative Rank',
+            hoverlabel: {
+                namelength :-1
+            },
+            yaxis: 'y2',
+            x: x,
+            y: relativeRank(yRank, yCtryCount),
+            type: 'line',
+            marker:{
+                color: clrBlue
             },
         };
 
         var trCountryCount = {
             name: '# Countries',
+            hoverlabel: {
+                namelength :-1
+            },
             x: x,
             y: yCtryCount,
-            //showgrid: false,
             type: 'bar',
             marker:{
-                color: 'rgba(204,204,204, .9)' // gray
+                color: clrGray
             },
         };
 
+        // create chart layout
         var layout = {
             yaxis: { 
                 title: {
@@ -326,9 +357,23 @@ Promise.all([
                 tickfont: {
                     size: 11
                 },
-                range:[0, roundUp10(maxCount)],
-                showgrid: false,
+                //range:[0, roundUp10(maxCount)],
+                showgrid: false
+            },
+            yaxis2: {
+                title: {
+                    text: 'rank / country count ratio',
+                    font: {
+                        size: 11,
+                    },
+                },
+                tickfont: {
+                    size: 11
+                },
                 overlaying: 'y',
+                side: 'right',
+                showgrid: false,
+                rangemode: 'tozero',
             },
             xaxis: { 
                 tickfont: {
@@ -357,7 +402,7 @@ Promise.all([
                 x: .3,
                 xanchor: 'left',
                 y: 1,
-                bgcolor: 'rgba(0,0,0,0)',
+                bgcolor: clrWhiteTransparent,
                 font: {
                     size: 10
                 },
@@ -408,18 +453,23 @@ Promise.all([
             yPer100.push(row['daily_vaccinations_per_hundred']);
         }
 
+        // create chart traces
         var trPer100 = {
             name: 'Doses Per 100',
+            hoverlabel: {
+                namelength :-1
+            },
             x: x,
             y: yPer100,
             showgrid: false,
             //fill: 'tozeroy',
             type: 'scatter',
             marker:{
-                color: fillColor(x)
+                color: clrBlue
             },
         };
 
+        // create chart layout
         var layout = {
             yaxis: { 
                 tickfont: {
@@ -467,9 +517,19 @@ Promise.all([
 
 // FUNCTIONS
 
-function rankPercentile(arrLen, rank) {
+// calculate rank percentile based on country count
+function rankPercentile(array, rank) {
     // TBD
     return percentile
+}
+
+// assign bar color based on x value
+function relativeRank(yRank, yCtryCount) {
+    yPercentile = [];
+    for (var i=0; i<yRank.length; i++) {
+        yPercentile.push((100 - (yRank[i] / yCtryCount[i]) * 100));
+    }
+    return yPercentile
 }
 
 // used to round up y axis range max value
@@ -530,9 +590,9 @@ function fillColor(x, location) {
     colors = [];
     for (var i=0; i<x.length; i++) {
         if (x[i] == "Canada") {
-            colors.push('rgba(49,130,189, .9)'); // blue
+            colors.push(clrBlue);
         } else {
-            colors.push('rgba(204,204,204, .9)'); // gray
+            colors.push(clrGray);
         }
     }
     return colors
