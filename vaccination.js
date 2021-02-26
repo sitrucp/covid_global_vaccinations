@@ -237,7 +237,6 @@ Promise.all([
 
         // create x and y axis array variables
         var x = [];
-        var yPer100 = [];
         var yRank = [];
         var yCtryCount = [];
 
@@ -319,14 +318,18 @@ Promise.all([
         };
 
         var trRelRank = {
-            name: 'Relative Rank',
+            name: 'Rank Percentile',
             hoverlabel: {
                 namelength :-1
             },
             yaxis: 'y2',
             x: x,
-            y: relativeRank(yRank, yCtryCount),
+            y: getPercentile(yRank, yCtryCount),
             type: 'line',
+            line: {
+                dash: 'dot',
+                width: 2
+            },
             marker:{
                 color: clrBlue
             },
@@ -349,7 +352,7 @@ Promise.all([
         var layout = {
             yaxis: { 
                 title: {
-                    text: '', // '# Countries & Canada Rank',
+                    text: 'rank & country count',
                     font: {
                         size: 12
                     },
@@ -357,12 +360,12 @@ Promise.all([
                 tickfont: {
                     size: 11
                 },
-                //range:[0, roundUp10(maxCount)],
+                range:[0, roundUp10(maxCount)],
                 showgrid: false
             },
             yaxis2: {
                 title: {
-                    text: 'rank / country count ratio',
+                    text: 'rank percentile',
                     font: {
                         size: 11,
                     },
@@ -370,6 +373,7 @@ Promise.all([
                 tickfont: {
                     size: 11
                 },
+                range:[0, 100],
                 overlaying: 'y',
                 side: 'right',
                 showgrid: false,
@@ -410,7 +414,7 @@ Promise.all([
         }
 
         // plotly data, config, create chart
-        var data = [trGlobalRank, trCountryCount];
+        var data = [trGlobalRank, trRelRank, trCountryCount];
         var config = {responsive: true}
         Plotly.newPlot('divCanadaRank', data, layout, config);
 
@@ -517,19 +521,12 @@ Promise.all([
 
 // FUNCTIONS
 
-// calculate rank percentile based on country count
-function rankPercentile(array, rank) {
-    // TBD
-    return percentile
-}
-
-// assign bar color based on x value
-function relativeRank(yRank, yCtryCount) {
-    yPercentile = [];
-    for (var i=0; i<yRank.length; i++) {
-        yPercentile.push((100 - (yRank[i] / yCtryCount[i]) * 100));
+function getPercentile(arrRank, arrCtryCount) {
+    results = [];
+    for (var i=0; i<arrRank.length; i++) {
+        results.push(parseInt((arrCtryCount[i] - arrRank[i] + 1) / arrCtryCount[i] * 100));
     }
-    return yPercentile
+    return results
 }
 
 // used to round up y axis range max value
