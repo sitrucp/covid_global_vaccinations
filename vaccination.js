@@ -194,7 +194,7 @@ Promise.all([
                 pad: 2
             },
             title: {
-                text:'Global Total Doses per 100 people <br> Canada ' + canadaPer100 + ' Ranks ' + canadaRank + ' of ' + countryCount + ' countries',
+                text:'Global Total Doses per 100 People <br> Canada ' + canadaPer100 + ' Ranks ' + canadaRank + ' of ' + countryCount + ' countries',
                 font: {
                     size: 14
                 },
@@ -217,7 +217,7 @@ Promise.all([
         var divDesc= document.createElement("p");
         var divChart = document.createElement("div");
         divChart.id = divCanada;
-        var chartTitle = "Canada Daily Global Rank of Total Doses per 100 people - Tracking Canada's Changing Rank Relative To Other Countries";
+        var chartTitle = "Canada Daily Global Rank of Total Doses per 100 People - Tracking Canada's Changing Rank Relative To Other Countries";
         var chartDesc = 'Shows Canada\'s global rank and # countries in OWID dataset used in ranking by date. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data. Also while Canada has been administering vaccines since Dec 14, 2020, the Canadian government data source used by OWID only contains vaccination data starting Jan 12.';
         divTitle.innerHTML  = chartTitle;
         divDesc.innerHTML  = chartDesc;
@@ -397,7 +397,7 @@ Promise.all([
                 pad: 2
             },
             title: {
-                text:'Canada Doses per 100 people <br> Daily Global Rank',
+                text:'Canada Doses per 100 People <br> Daily Global Rank',
                 font: {
                     size: 14
                 },
