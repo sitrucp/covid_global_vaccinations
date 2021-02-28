@@ -52,8 +52,10 @@ Promise.all([
     // get canada working group vaccine data for pre-jan 12 not included in owid dataset
     arrAdminCanada.forEach(function(d) {
         d.report_date = reformatDate(d.date_vaccine_administered);
-        d.total_vaccinations_per_hundred = d.cumulative_avaccine / (38005238 / 100);
+        d.total_vaccinations_per_hundred = d.cumulative_avaccine / (37742157 / 100);
     });
+
+    //TO DO: append arrAdminCanada to owid vaccine dataset to get pre jan 12 total per 100 data for the canada daily rank chart
 
     // created filtered vacDetail array excluding England, Gibralter, North Ireland, Scotland, Wales, World from vaccinations array
     const vacDetail = arrVaccinations.filter(function(d) { 
@@ -132,8 +134,8 @@ Promise.all([
         var divDesc= document.createElement("p");
         var divChart = document.createElement("div");
         divChart.id = divCanada;
-        var chartTitle = "Global Total Doses Per 100 Persons - Tracking How Canada Compares To Other Countries";
-        var chartDesc = 'Shows Canada\'s relative ranking by total doses per 100 persons compared to all countries currently in OWID dataset. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data.';
+        var chartTitle = "Global Total Doses per 100 People - Tracking How Canada Compares To Other Countries";
+        var chartDesc = 'Shows Canada\'s relative ranking by total doses per 100 people compared to all countries currently in OWID dataset. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data.';
         divTitle.innerHTML  = chartTitle;
         divDesc.innerHTML  = chartDesc;
         document.getElementById('div_global_per100_chart').append(divTitle);
@@ -192,7 +194,7 @@ Promise.all([
                 pad: 2
             },
             title: {
-                text:'Global Total Doses Per 100 Persons <br> Canada ' + canadaPer100 + ' Ranks ' + canadaRank + ' of ' + countryCount + ' countries',
+                text:'Global Total Doses per 100 people <br> Canada ' + canadaPer100 + ' Ranks ' + canadaRank + ' of ' + countryCount + ' countries',
                 font: {
                     size: 14
                 },
@@ -215,7 +217,7 @@ Promise.all([
         var divDesc= document.createElement("p");
         var divChart = document.createElement("div");
         divChart.id = divCanada;
-        var chartTitle = "Canada Daily Global Rank of Total Doses Per 100 Persons - Tracking Canada's Changing Rank Relative To Other Countries";
+        var chartTitle = "Canada Daily Global Rank of Total Doses per 100 people - Tracking Canada's Changing Rank Relative To Other Countries";
         var chartDesc = 'Shows Canada\'s global rank and # countries in OWID dataset used in ranking by date. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data. Also while Canada has been administering vaccines since Dec 14, 2020, the Canadian government data source used by OWID only contains vaccination data starting Jan 12.';
         divTitle.innerHTML  = chartTitle;
         divDesc.innerHTML  = chartDesc;
@@ -395,7 +397,7 @@ Promise.all([
                 pad: 2
             },
             title: {
-                text:'Canada Doses Per 100 Persons <br> Daily Global Rank',
+                text:'Canada Doses per 100 people <br> Daily Global Rank',
                 font: {
                     size: 14
                 },
@@ -438,7 +440,7 @@ Promise.all([
         var divDesc= document.createElement("p");
         var divChart = document.createElement("div");
         divChart.id = divCanada;
-        var chartTitle = "Canada Daily Doses Per 100 Persons - Tracking Canada's Daily Dose Administration";
+        var chartTitle = "Canada Daily Doses per 100 People - Tracking Canada's Daily Dose Administration";
         var chartDesc = 'Shows Canada\'s absolute daily dose administration. Note: Canada has been administering vaccines since Dec 14, 2020 however the Canadian government data source used by OWID only contains vaccination data starting Jan 12.';
         divTitle.innerHTML  = chartTitle;
         divDesc.innerHTML  = chartDesc;
@@ -497,7 +499,7 @@ Promise.all([
                 pad: 2
             },
             title: {
-                text:'Canada Daily Doses Per 100 Persons: <br>' + currentDailyDP100 + ' (' +  ((currentDailyDP100 < previousDailyDP100) ? 'Down' : 'Up') + ' From Previous Day ' + previousDailyDP100 + ')',
+                text:'Canada Daily Doses per 100 People: <br>' + currentDailyDP100 + ' (' +  ((currentDailyDP100 < previousDailyDP100) ? 'Down' : 'Up') + ' From Previous Day ' + previousDailyDP100 + ')',
                 font: {
                     size: 14
                 },
