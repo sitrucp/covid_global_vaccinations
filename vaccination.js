@@ -38,7 +38,7 @@ Promise.all([
     var updateTime = data[4];
 
     // get update time from working group repository
-    lastUpdated = updateTime.columns[0].replace('T', ' ').slice(0, -3) + ' EST';
+    lastUpdated = updateTime.columns[0].replace('T', ' ').slice(0, -3) + ' GMT';
 
     // write last updated time to index page
     document.getElementById('last_update').innerHTML += ' <small class="text-muted">Data updated: ' + lastUpdated + '</small>';
