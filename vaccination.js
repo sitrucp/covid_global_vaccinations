@@ -213,18 +213,11 @@ Promise.all([
 
         // create chart layout
         var layout = {
-            yaxis: { 
-                tickfont: {
-                    size: 11
+            title: {
+                text:'Global Total Doses per 100 People <br> Canada ' + canadaPer100 + ' Ranks ' + canadaRank + ' of ' + countryCount + ' countries',
+                font: {
+                    size: 14
                 },
-                showgrid: false
-            },
-            xaxis: { 
-                tickfont: {
-                    size: 9
-                },
-                showgrid: false,
-                tickmode: 'linear',
             },
             autosize: true,
             autoscale: false,
@@ -235,12 +228,19 @@ Promise.all([
                 t: 80,
                 pad: 2
             },
-            title: {
-                text:'Global Total Doses per 100 People <br> Canada ' + canadaPer100 + ' Ranks ' + canadaRank + ' of ' + countryCount + ' countries',
-                font: {
-                    size: 14
+            xaxis: { 
+                tickfont: {
+                    size: 9
                 },
+                showgrid: false,
+                tickmode: 'linear',
             },
+            yaxis: { 
+                tickfont: {
+                    size: 11
+                },
+                showgrid: false
+            }
         }
 
         // plotly data, config, create chart
@@ -348,7 +348,7 @@ Promise.all([
          var maxCount = Math.max(...yCtryCount);
 
          // create chart traces
-        var trGlobalRank = {
+        var trCanadaRank = {
             name: 'Canada Rank',
             hoverlabel: {
                 namelength :-1
@@ -356,24 +356,6 @@ Promise.all([
             x: x,
             y: yRank,
             type: 'line',
-            marker:{
-                color: clrBlue
-            },
-        };
-
-        var trRelRank = {
-            name: 'Rank Percentile',
-            hoverlabel: {
-                namelength :-1
-            },
-            yaxis: 'y',
-            x: x,
-            y: getPercentile(yRank, yCtryCount),
-            type: 'line',
-            line: {
-                dash: 'dot',
-                width: 2
-            },
             marker:{
                 color: clrBlue
             },
@@ -392,11 +374,62 @@ Promise.all([
             },
         };
 
+        var trRankPctile = {
+            name: 'Rank Percentile',
+            hoverlabel: {
+                namelength :-1
+            },
+            yaxis: 'y2',
+            x: x,
+            y: getPercentile(yRank, yCtryCount),
+            type: 'line',
+            line: {
+                dash: 'dot',
+                width: 2
+            },
+            marker:{
+                color: clrBlue
+            },
+        };
+
         // create chart layout
         var layout = {
+            title: {
+                text:'Canada Doses per 100 People <br> Daily Global Rank',
+                font: {
+                    size: 14
+                },
+            },
+            autosize: true,
+            autoscale: false,
+            //width: 800,
+            height: 500,
+            margin: {
+                l: 80,
+                r: 80,
+                b: 80,
+                t: 180
+            },
+            showlegend: true,
+            legend: {
+                "orientation": "h",
+                "y": 1.26, 
+                "x": 0.25,
+                xanchor: 'left',
+                bgcolor: clrWhiteTransparent,
+                font: {
+                    size: 10
+                },
+            },
+            xaxis: { 
+                tickfont: {
+                    size: 11
+                },
+                showgrid: false
+            },
             yaxis: { 
                 title: {
-                    text: '', //'rank & country count',
+                    text: 'rank & country count',
                     font: {
                         size: 12
                     },
@@ -417,48 +450,16 @@ Promise.all([
                 tickfont: {
                     size: 11
                 },
-                range:[0, 100],
+                range: [0, 100],
                 overlaying: 'y',
                 side: 'right',
                 showgrid: false,
                 rangemode: 'tozero',
-            },
-            xaxis: { 
-                tickfont: {
-                    size: 11
-                },
-                showgrid: false
-            },
-            autosize: true,
-            autoscale: false,
-            margin: {
-                l: 40,
-                r: 40,
-                b: 80,
-                t: 40,
-                pad: 2
-            },
-            title: {
-                text:'Canada Doses per 100 People <br> Daily Global Rank',
-                font: {
-                    size: 14
-                },
-            },
-            showlegend: true,
-            legend: {
-                "orientation": "h",
-                x: .3,
-                xanchor: 'left',
-                y: 1,
-                bgcolor: clrWhiteTransparent,
-                font: {
-                    size: 10
-                },
-            },
+            }
         }
 
         // plotly data, config, create chart
-        var data = [trGlobalRank, trRelRank, trCountryCount];
+        var data = [trCanadaRank, trRankPctile, trCountryCount];
         var config = {responsive: true}
         Plotly.newPlot('divCanadaRank', data, layout, config);
 
@@ -519,17 +520,11 @@ Promise.all([
 
         // create chart layout
         var layout = {
-            yaxis: { 
-                tickfont: {
-                    size: 11
+            title: {
+                text:'Canada Daily Doses per 100 People: <br>' + currentDailyDP100 + ' (' +  ((currentDailyDP100 < previousDailyDP100) ? 'Down' : 'Up') + ' From Previous Day ' + previousDailyDP100 + ')',
+                font: {
+                    size: 14
                 },
-                showgrid: false
-            },
-            xaxis: { 
-                tickfont: {
-                    size: 11
-                },
-                showgrid: false
             },
             autosize: true,
             autoscale: false,
@@ -540,12 +535,18 @@ Promise.all([
                 t: 80,
                 pad: 2
             },
-            title: {
-                text:'Canada Daily Doses per 100 People: <br>' + currentDailyDP100 + ' (' +  ((currentDailyDP100 < previousDailyDP100) ? 'Down' : 'Up') + ' From Previous Day ' + previousDailyDP100 + ')',
-                font: {
-                    size: 14
+            xaxis: { 
+                tickfont: {
+                    size: 11
                 },
+                showgrid: false
             },
+            yaxis: { 
+                tickfont: {
+                    size: 11
+                },
+                showgrid: false
+            }
         }
 
         // plotly data, config, create chart
@@ -570,8 +571,7 @@ function getPercentile(arrRank, arrCtryCount) {
     for (var i=0; i<arrRank.length; i++) {
         if (arrRank[i] > 0) {
             results.push(parseInt((arrCtryCount[i] - arrRank[i] + 1) / arrCtryCount[i] * 100));
-        } 
-        
+        }
     }
     return results
 }
