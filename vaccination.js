@@ -4,13 +4,13 @@ var file_update_time = "https://raw.githubusercontent.com/owid/COVID-19-data/mas
 
 var file_vaccinations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/vaccinations.csv";
 
-// get canada working group vaccine data for pre-jan 12 not included in owid dataset
+// get canada working group vaccine data for pre-Jan 12 not included in owid dataset
 var file_admin_canada = "https://raw.githubusercontent.com/ishaberry/Covid19Canada/master/timeseries_canada/vaccine_administration_timeseries_canada.csv";
 
 var file_locations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/locations.csv";
 
 // owid population file
-//var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_2020.csv"; 
+//var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_2020.csv";
 
 // statscan population file
 var file_population = "https://raw.githubusercontent.com/sitrucp/covid_global_vaccinations/master/population.csv";
@@ -20,6 +20,20 @@ var clrBlue = 'rgba(49,130,189,.9)';
 var clrGray = 'rgba(204,204,204,.9)';
 var clrBlack = 'rgba(0,0,0,.9)';
 var clrWhiteTransparent = 'rgba(255,255,255,0)';
+
+// lookup to get standard vaccine name
+var vaccine_names  = [
+    {orig_name: "CNBG, Sinovac", new_name: "Sinovac, CNBG"},
+    {orig_name: "Covaxin, Covishield", new_name: "Covaxin, Covishield"},
+    {orig_name: "Moderna, Pfizer/BioNTech", new_name: "Pfizer/BioNTech, Moderna"},
+    {orig_name: "Oxford/AstraZeneca, Pfizer/BioNTech", new_name: "Pfizer/BioNTech, Oxford/AstraZeneca"},
+    {orig_name: "Pfizer/BioNTech", new_name: "Pfizer/BioNTech"},
+    {orig_name: "Pfizer/BioNTech, Sinopharm", new_name: "Pfizer/BioNTech, Sinopharm"},
+    {orig_name: "Sinopharm", new_name: "Sinopharm"},
+    {orig_name: "Sinovac", new_name: "Sinovac"},
+    {orig_name: "Sputnik V", new_name: "Sputnik V"},
+    {orig_name: "Pfizer/BioNTech, Pifzer/BioNTech", new_name: "Pfizer/BioNTech"}
+]
 
 Promise.all([
     d3.csv(file_vaccinations),
@@ -31,31 +45,41 @@ Promise.all([
     //everthing else below is in d3 promise scope
 
     // get data sets from promise
-    var arrVaccinations = data[0];
+    var arrVaccinationsRaw = data[0];
     var arrAdminCanada = data[1];
     var arrLocations = data[2];
     var arrPopulation = data[3];
-    var updateTime = data[4];
-
-    // get update time from working group repository
-    lastUpdated = updateTime.columns[0].replace('T', ' ').slice(0, -3) + ' GMT';
+    var updateTime = data[4].columns[0];
 
     // write last updated time to index page
+    lastUpdated = changeTimezone(updateTime);
     document.getElementById('last_update').innerHTML += ' <small class="text-muted">Data updated: ' + lastUpdated + '</small>';
 
     // create daily vaccinations per 100 column & reformatted date for sorting
-    arrVaccinations.forEach(function(d) {
+    arrVaccinationsRaw.forEach(function(d) {
         d.daily_vaccinations_per_hundred = (d.daily_vaccinations_per_million / 10000).toFixed(3);
-        d.dateSort = d.date.split('-').join('');
+        d.date_sort = d.date.split('-').join('');
+        d.concatLocDate = d.location + d.date;
+        d.source = "owid";
     });
 
-    // get canada working group vaccine data for pre-jan 12 not included in owid dataset
+    // filter out OWID itinerant dates instead use pre Jan 12 dates
+    var arrVaccinations = arrVaccinationsRaw.filter(function(d) {
+        return d.source + d.concatLocDate != "owidCanada2020-12-19" && d.source + d.concatLocDate != "owidCanada2020-12-26" && d.source + d.concatLocDate != "owidCanada2021-01-02" && d.source + d.concatLocDate != "owidCanada2021-01-09";
+    });
+
+    // get canada working group vaccine data for pre-Jan 12 not included in owid dataset
+    // used (37742157 / 100) to calculate per 100 per OWID methodology
     arrAdminCanada.forEach(function(d) {
         d.report_date = reformatDate(d.date_vaccine_administered);
-        d.total_vaccinations_per_hundred = d.cumulative_avaccine / (37742157 / 100);
+        d.total_vaccinations_per_hundred = (d.cumulative_avaccine / (37742157 / 100)).toFixed(2);
+        d.date_sort = reformatDate(d.date_vaccine_administered).split('-').join('');
+        d.concatLocDate = d.province + d.date;
+        d.source = "ccodwg";
     });
-
-    //TO DO: append arrAdminCanada to owid vaccine dataset to get pre jan 12 total per 100 data for the canada daily rank chart
+    var arrAdminPreJan12 = arrAdminCanada.filter(function(d) { 
+        return d.date_sort < 20210112;
+    });
 
     // created filtered vacDetail array excluding England, Gibralter, North Ireland, Scotland, Wales, World from vaccinations array
     const vacDetail = arrVaccinations.filter(function(d) { 
@@ -63,7 +87,7 @@ Promise.all([
     });
 
     // sort vacDetail array by location asc & date desc
-    vacDetail.sort((a, b) => a.location.localeCompare(b.location) || a.dateSort - b.dateSort);
+    vacDetail.sort((a, b) => a.location.localeCompare(b.location) || a.date_sort - b.date_sort);
 
     // extract total vaccinations per 100 into new array to fill forward values
     var arrVacPer100 = vacDetail.map(function(i){return i.total_vaccinations_per_hundred;});
@@ -106,15 +130,33 @@ Promise.all([
     const vacDetailLoc = equijoinWithDefault(
         vacDetail, locationPop, 
         "location", "location", 
-        ({location, iso_code, date, total_vaccinations, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred}, {vaccines, last_observation_date, owid_vaccine_alt, vaccines_group, population}, ) => 
-        ({location, iso_code, date, total_vaccinations, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, vaccines, last_observation_date, owid_vaccine_alt, vaccines_group, population}), 
+        ({location, iso_code, date, date_sort, total_vaccinations, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, source}, {vaccines, last_observation_date, owid_vaccine_alt, vaccines_group, population}, ) => 
+        ({location, iso_code, date, date_sort, total_vaccinations, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, vaccines, last_observation_date, owid_vaccine_alt, vaccines_group, population, source}), 
         {population: null});
 
     // filter vaccinations dataset by location max date to get current records only
-    const vacCurrent = vacDetailLoc.filter(function(d) { 
+    // do before adding pre Jan 12 records
+    const vacCurrent = vacDetailLoc.filter(function(d) {
         return d.date == d.last_observation_date;
     });
 
+    // append arrAdminPreJan12 to vacDetailLoc to add pre Jan 12 total per 100 data
+    for (var i=0; i<arrAdminPreJan12.length; i++) {
+        obj = {
+            location : arrAdminPreJan12[i].province,
+            date : arrAdminPreJan12[i].report_date,
+            date_sort : arrAdminPreJan12[i].date_sort,
+            last_observation_date : arrAdminPreJan12[i].report_date,
+            total_vaccinations : arrAdminPreJan12[i].cumulative_avaccine,
+            total_vaccinations_per_hundred : arrAdminPreJan12[i].total_vaccinations_per_hundred,
+            total_vaccinations_per_hundred_filled : arrAdminPreJan12[i].total_vaccinations_per_hundred,
+            concatLocDate : arrAdminPreJan12[i].concatLocDate
+        }
+        vacDetailLoc.push(obj);
+    }
+
+    // sort vacDetailLoc array by location asc & date desc to get pre Jan 12 records in correct order
+    vacDetailLoc.sort((a, b) => a.location.localeCompare(b.location) || a.date_sort - b.date_sort);
 
     // CREATE GLOBAL PER 100 BAR CHART
     function createGlobalPer100Chart() {
@@ -179,7 +221,7 @@ Promise.all([
             },
             xaxis: { 
                 tickfont: {
-                    size: 11
+                    size: 9
                 },
                 showgrid: false,
                 tickmode: 'linear',
@@ -218,7 +260,7 @@ Promise.all([
         var divChart = document.createElement("div");
         divChart.id = divCanada;
         var chartTitle = "Canada Daily Global Rank of Total Doses per 100 People - Tracking Canada's Changing Rank Relative To Other Countries";
-        var chartDesc = 'Shows Canada\'s global rank and # countries in OWID dataset used in ranking by date. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data. Also while Canada has been administering vaccines since Dec 14, 2020, the Canadian government data source used by OWID only contains vaccination data starting Jan 12.';
+        var chartDesc = 'Shows Canada\'s global rank and # countries in OWID dataset by date. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data. Also while Canada has been administering vaccines since Dec 14 2020, the <a href="https://health-infobase.canada.ca/covid-19/vaccine-administration/" target=_blank">Canadian government data source</a> used by OWID only contains vaccination data starting Jan 12. Therefore, the <a href="https://github.com/ccodwg/Covid19Canada" target=_blank">COVID-19 Canada Open Data Working Group data</a> was used to get Canada\'s pre-Jan 12 rank. These datasets do not have perfectly matching dose counts which results in slight discontinuity from Jan 11 to 12 but otherwise the trend is represented well.';
         divTitle.innerHTML  = chartTitle;
         divDesc.innerHTML  = chartDesc;
         document.getElementById('div_canada_daily_rank_chart').append(divTitle);
@@ -260,14 +302,14 @@ Promise.all([
             })
             .rollup(function(v) { 
                 return {
-                    last_observation_date: d3.max(v, function(d) { return d.date; })
+                    max_loop_date: d3.max(v, function(d) { return d.date; })
                 };
             })
             .entries(vacDaily)
             .map(function(group) {
                 return {
                     location: group.key,
-                    last_observation_date: group.value.last_observation_date
+                    max_loop_date: group.value.max_loop_date
                 }
             });
 
@@ -278,7 +320,7 @@ Promise.all([
 
             // create concat loopLocMaxDate location and date to join arrays
             loopLocMaxDate.forEach(function(d) {
-                d.concatLocDate = d.location + d.last_observation_date;
+                d.concatLocDate = d.location + d.max_loop_date;
             });
             
             // join loopLocMaxDate and vacDaily on concat location and date to get  total_vaccinations_per_hundred value from vacDaily for loop date
@@ -291,11 +333,11 @@ Promise.all([
                 return b.total_vaccinations_per_hundred_filled - a.total_vaccinations_per_hundred_filled;
             });
 
-            // get rank only for post jan 11 dates eg owid Canada data only from jan 12
-            if (loopDate.split('-').join('') > '20210111') {
+            // get rank only for post Jan 12 dates eg owid Canada data only from Jan 12
+            //if (loopDate.split('-').join('') > '20210111') {
                 var canadaRank = loopLocMaxDate.findIndex(x => x.location === "Canada") + 1;
                 yRank.push(canadaRank);
-            } 
+            //} 
             // get x array and country count array for all dates
             x.push(loopDate);
             yCtryCount.push(loopLocMaxDate.length);
@@ -324,7 +366,7 @@ Promise.all([
             hoverlabel: {
                 namelength :-1
             },
-            yaxis: 'y2',
+            yaxis: 'y',
             x: x,
             y: getPercentile(yRank, yCtryCount),
             type: 'line',
@@ -354,7 +396,7 @@ Promise.all([
         var layout = {
             yaxis: { 
                 title: {
-                    text: 'rank & country count',
+                    text: '', //'rank & country count',
                     font: {
                         size: 12
                     },
@@ -441,7 +483,7 @@ Promise.all([
         var divChart = document.createElement("div");
         divChart.id = divCanada;
         var chartTitle = "Canada Daily Doses per 100 People - Tracking Canada's Daily Dose Administration";
-        var chartDesc = 'Shows Canada\'s absolute daily dose administration. Note: Canada has been administering vaccines since Dec 14, 2020 however the Canadian government data source used by OWID only contains vaccination data starting Jan 12.';
+        var chartDesc = 'Shows Canada\'s absolute daily dose administration. Note: while Canada has been administering vaccines since Dec 14 2020, the <a href="https://health-infobase.canada.ca/covid-19/vaccine-administration" target=_blank">Canadian government data source</a> used by OWID only contains vaccination data starting Jan 12.';
         divTitle.innerHTML  = chartTitle;
         divDesc.innerHTML  = chartDesc;
         document.getElementById('div_canada_daily_per100_chart').append(divTitle);
@@ -516,7 +558,7 @@ Promise.all([
     // create charts when page loads
     createGlobalPer100Chart();
     createCanadaDailyRankChart();
-    createCanadaDailyPer100Chart();
+    //createCanadaDailyPer100Chart();
 
 });
 
@@ -526,7 +568,10 @@ Promise.all([
 function getPercentile(arrRank, arrCtryCount) {
     results = [];
     for (var i=0; i<arrRank.length; i++) {
-        results.push(parseInt((arrCtryCount[i] - arrRank[i] + 1) / arrCtryCount[i] * 100));
+        if (arrRank[i] > 0) {
+            results.push(parseInt((arrCtryCount[i] - arrRank[i] + 1) / arrCtryCount[i] * 100));
+        } 
+        
     }
     return results
 }
@@ -543,26 +588,18 @@ function equijoinWithDefault(xs, ys, primary, foreign, sel, def) {
 }
 
 // reformat date string
-function reformatDate(oldDate) {
+function reformatDate(d) {
     // 17-12-2020 is working group date format
-    var d = (oldDate).split('-');
+    var d = (d).split('-');
     var newDate = d[2] + '-' + d[1] + '-' + d[0];
     return newDate
 }
 
-// lookup to return standard vaccine name
-var vaccine_names  = [
-    {orig_name: "CNBG, Sinovac", new_name: "Sinovac, CNBG"},
-    {orig_name: "Covaxin, Covishield", new_name: "Covaxin, Covishield"},
-    {orig_name: "Moderna, Pfizer/BioNTech", new_name: "Pfizer/BioNTech, Moderna"},
-    {orig_name: "Oxford/AstraZeneca, Pfizer/BioNTech", new_name: "Pfizer/BioNTech, Oxford/AstraZeneca"},
-    {orig_name: "Pfizer/BioNTech", new_name: "Pfizer/BioNTech"},
-    {orig_name: "Pfizer/BioNTech, Sinopharm", new_name: "Pfizer/BioNTech, Sinopharm"},
-    {orig_name: "Sinopharm", new_name: "Sinopharm"},
-    {orig_name: "Sinovac", new_name: "Sinovac"},
-    {orig_name: "Sputnik V", new_name: "Sputnik V"},
-    {orig_name: "Pfizer/BioNTech, Pifzer/BioNTech", new_name: "Pfizer/BioNTech"}
-]
+function changeTimezone(d) {
+    var date = new Date(d);
+    var dateEST = new Date(date.setHours(date.getHours() - 5));
+    return new Date(dateEST.getTime() - (dateEST.getTimezoneOffset() * 60000)).toISOString().replace('T', ' ').slice(0, -8) + ' EST';
+}
 
 // lookup to return alternate vaccine name
 function vaccineAlt(vaccine) {
