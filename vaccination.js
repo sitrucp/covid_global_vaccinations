@@ -9,14 +9,11 @@ var file_admin_canada = "https://raw.githubusercontent.com/ishaberry/Covid19Cana
 
 var file_locations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/locations.csv";
 
-// owid population file
-//var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_2020.csv";
-
-// vaccine group file
-//var file_vaccine_group = "https://raw.githubusercontent.com/sitrucp/covid_global_vaccinations/master/vaccine_groups.csv";
-
 // vaccine group file
 var file_vaccine_group = "vaccine_groups.csv";
+
+// owid population file
+//var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_2020.csv";
 
 // statscan population file
 var file_population = "https://raw.githubusercontent.com/sitrucp/covid_global_vaccinations/master/population.csv";
@@ -26,20 +23,6 @@ var clrBlue = 'rgba(49,130,189,.9)';
 var clrGray = 'rgba(204,204,204,.9)';
 var clrBlack = 'rgba(0,0,0,.9)';
 var clrWhiteTransparent = 'rgba(255,255,255,0)';
-
-// lookup to get standard vaccine name
-var vaccine_names = [
-    {orig_name: "CNBG, Sinovac", new_name: "Sinovac, CNBG"},
-    {orig_name: "Covaxin, Covishield", new_name: "Covaxin, Covishield"},
-    {orig_name: "Moderna, Pfizer/BioNTech", new_name: "Pfizer/BioNTech, Moderna"},
-    {orig_name: "Oxford/AstraZeneca, Pfizer/BioNTech", new_name: "Pfizer/BioNTech, Oxford/AstraZeneca"},
-    {orig_name: "Pfizer/BioNTech", new_name: "Pfizer/BioNTech"},
-    {orig_name: "Pfizer/BioNTech, Sinopharm", new_name: "Pfizer/BioNTech, Sinopharm"},
-    {orig_name: "Sinopharm", new_name: "Sinopharm"},
-    {orig_name: "Sinovac", new_name: "Sinovac"},
-    {orig_name: "Sputnik V", new_name: "Sputnik V"},
-    {orig_name: "Pfizer/BioNTech, Pifzer/BioNTech", new_name: "Pfizer/BioNTech"}
-]
 
 Promise.all([
     d3.csv(file_vaccinations),
@@ -91,7 +74,7 @@ Promise.all([
 
     // created filtered vacDetail array excluding England, Gibralter, North Ireland, Scotland, Wales, World from vaccinations array
     const vacDetail = arrVaccinations.filter(function(d) { 
-        return d.location != "England" && d.location != "European Union" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Isle of Man" && d.location != "Scotland" && d.location != "Wales" && d.location != "World";
+        return d.location != "England" && d.location != "European Union" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Scotland" && d.location != "Wales" && d.location != "World";
     });
 
     // sort vacDetail array by location asc & date desc
@@ -272,18 +255,6 @@ Promise.all([
 
     // CREATE CANADA DAILY RANK PER 100 CHART
     function createCanadaDailyRankChart() {
-        // create divs, para for Canada chart
-        var divTitle = document.createElement("h4");
-        var divDesc= document.createElement("p");
-        var divChart = document.createElement("div");
-        divChart.id = 'div_canada_daily_rank_chart';
-        var chartTitle = "Canada Daily Global Rank of Total Doses per 100 People - Tracking Canada's Changing Rank Relative To Other Countries";
-        var chartDesc = 'Shows Canada\'s global rank and # countries in OWID dataset by date. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data. Also while Canada has been administering vaccines since Dec 14 2020, the <a href="https://health-infobase.canada.ca/covid-19/vaccine-administration/" target=_blank">Canadian government data source</a> used by OWID only contains vaccination data starting Jan 12. Therefore, the <a href="https://github.com/ccodwg/Covid19Canada" target=_blank">COVID-19 Canada Open Data Working Group data</a> was used to get Canada\'s pre-Jan 12 rank. These datasets do not have perfectly matching dose counts which results in slight discontinuity from Jan 11 to 12 but otherwise the trend is represented well.';
-        divTitle.innerHTML = chartTitle;
-        divDesc.innerHTML = chartDesc;
-        document.getElementById('div_canada_daily_rank').append(divTitle);
-        document.getElementById('div_canada_daily_rank').append(divDesc);
-        document.getElementById('div_canada_daily_rank').append(divChart);
 
         // create vacDates array with unique dates to loop through 
         var vacDates = [...new Set(vacDetailLoc.map(item => item.date))];
@@ -302,12 +273,14 @@ Promise.all([
         var yRank = [];
         var yCtryCount = [];
 
+        // create table row var with table header row
+        var tableSections = '';
+    
         // create the daily ranks and country counts:
         // loop through vacDates desc, get max date per country, that is less than loop date
         // assign max date less than loop date as country's last report date
         for (var i=0; i<vacDates.length; i++) {
             var loopDate = vacDates[i];
-
             // filter vacDetailLoc to dates less than loop date
             var vacDaily = vacDetailLoc.filter(function(d) { 
                 return d.date <= loopDate;
@@ -351,14 +324,46 @@ Promise.all([
                 return b.total_vaccinations_per_hundred_filled - a.total_vaccinations_per_hundred_filled;
             });
 
-            // get rank only for post Jan 12 dates eg owid Canada data only from Jan 12
-            //if (loopDate.split('-').join('') > '20210111') {
-                var canadaRank = loopLocMaxDate.findIndex(x => x.location === "Canada") + 1;
-                yRank.push(canadaRank);
-            //} 
+            // append rank & per 100 value for pre Jan 12 dates to x and y arrays
+            var canadaRank = loopLocMaxDate.findIndex(x => x.location === "Canada") + 1;
+            yRank.push(canadaRank);
+            var canadaPer100 = loopLocMaxDate.findIndex(x => x.location === "Canada").total_vaccinations_per_hundred_filled;
+            var location = loopLocMaxDate.findIndex(x => x.location === "Canada").location;
+
             // get x array and country count array for all dates
             x.push(loopDate);
             yCtryCount.push(loopLocMaxDate.length);
+
+            // define table variables
+            var sectionHeader = '';
+            var tableSection = '';
+            var tableHeader = '';
+            var tableRows = '';
+
+            // create table section
+            sectionHeader = '<h5 style="margin-top: 10px;">' + loopDate + ' Rank: ' + canadaRank + ' / ' + loopLocMaxDate.length + '</h5>'; 
+            tableHeader = '<table class="table-sm"><tr><th>Rank</th><th>Location</th><th>Doses Per 100</th></tr>';
+
+            console.log(loopDate, canadaRank, loopLocMaxDate.length)
+
+            // create table location rows
+            for (var j=0; j < loopLocMaxDate.length; j++) {
+                tableRow = loopLocMaxDate[j];
+                if (tableRow.location == 'Canada') {
+                    strRank = '<span style="font-weight: bold; color: red;">' + (parseInt(j) + 1) + '</span>';
+                    strLocation = '<span style="font-weight: bold; color: red;">' + tableRow.location + '</span>';
+                    strPer100 = '<span style="font-weight: bold; color: red;">' + parseFloat(tableRow.total_vaccinations_per_hundred_filled).toFixed(2) + '</span>';
+                } else {
+                    strRank= (parseInt(j) + 1);
+                    strLocation = tableRow.location;
+                    strPer100 = parseFloat(tableRow.total_vaccinations_per_hundred_filled).toFixed(2)
+                };
+                tableRows += '<tr class="tbl_values_row"><td>' + strRank + '</td><td>' + strLocation + '</td><td style="text-align: right;">' + strPer100 + '</td></tr>'; 
+            }
+
+            tableSection = sectionHeader + tableHeader + tableRows;
+            tableSections += tableSection;
+           // <div id="rank' + i +  '" style="display: none;"></div>
         }
 
          // get max values for y axis range 
@@ -475,6 +480,23 @@ Promise.all([
                 rangemode: 'tozero',
             }
         }
+
+        // create divs, para for Canada chart
+        var divTitle = document.createElement("h4");
+        var divDesc= document.createElement("p");
+        var divChart = document.createElement("div");
+        var divTable = document.createElement("div");
+        divChart.id = 'div_canada_daily_rank_chart';
+        var chartTitle = "Canada Daily Global Rank of Total Doses per 100 People - Tracking Canada's Changing Rank Relative To Other Countries";
+        var chartDesc = 'Shows Canada\'s global rank and # countries in OWID dataset by date. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data. Also while Canada has been administering vaccines since Dec 14 2020, the <a href="https://health-infobase.canada.ca/covid-19/vaccine-administration/" target=_blank">Canadian government data source</a> used by OWID only contains vaccination data starting Jan 12. Therefore, the <a href="https://github.com/ccodwg/Covid19Canada" target=_blank">COVID-19 Canada Open Data Working Group data</a> was used to get Canada\'s pre-Jan 12 rank. These datasets do not have perfectly matching dose counts which results in slight discontinuity from Jan 11 to 12 but otherwise the trend is represented well.';
+        
+        divTitle.innerHTML = chartTitle;
+        divDesc.innerHTML = chartDesc;
+        divTable.innerHTML = tableSections;
+        document.getElementById('div_canada_daily_rank').append(divTitle);
+        document.getElementById('div_canada_daily_rank').append(divDesc);
+        document.getElementById('div_canada_daily_rank').append(divChart);
+        document.getElementById('div_canada_daily_rank').append(divTable);
 
         // plotly data, config, create chart
         var data = [trCanadaRank, trRankPctile, trCountryCount];

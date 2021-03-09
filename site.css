@@ -1,13 +1,18 @@
 
-    .container { 
-        margin-top: 20px;
-        margin-bottom: 40px; 
-    }
-
-    .modebar{
-    display: none !important;
-    }
-
-    .div_chart {
+.container { 
     margin-top: 20px;
-    }
+    margin-bottom: 40px; 
+}
+
+.modebar{
+    display: none !important;
+}
+
+.div_chart {
+    margin-top: 20px;
+}
+
+.tbl_date_row {
+    background-color: lightgray;
+    padding: 5px;
+}
