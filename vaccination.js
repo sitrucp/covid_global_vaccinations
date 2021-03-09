@@ -341,14 +341,16 @@ Promise.all([
             var tableRows = '';
 
             // create table section
-            sectionHeader = '<h5 style="margin-top: 10px;">' + loopDate + ' Rank: ' + canadaRank + ' / ' + loopLocMaxDate.length + '</h5>'; 
-            tableHeader = '<table class="table-sm"><tr><th>Rank</th><th>Location</th><th>Doses Per 100</th></tr>';
+            sectionHeader = ''; //'<h5 style="margin-top: 10px;">' + loopDate + ' Rank: ' + canadaRank + ' / ' + loopLocMaxDate.length + '</h5>'; 
+            tableHeader = ''; // '<table class="table-sm"><tr><th>Rank</th><th>Location</th><th>Doses Per 100</th></tr>';
 
-            console.log(loopDate, canadaRank, loopLocMaxDate.length)
+            //console.log(loopDate, canadaRank, loopLocMaxDate.length)
 
+            /*
             // create table location rows
             for (var j=0; j < loopLocMaxDate.length; j++) {
                 tableRow = loopLocMaxDate[j];
+                console.log(loopDate, loopLocMaxDate.length);
                 if (tableRow.location == 'Canada') {
                     strRank = '<span style="font-weight: bold; color: red;">' + (parseInt(j) + 1) + '</span>';
                     strLocation = '<span style="font-weight: bold; color: red;">' + tableRow.location + '</span>';
@@ -360,7 +362,8 @@ Promise.all([
                 };
                 tableRows += '<tr class="tbl_values_row"><td>' + strRank + '</td><td>' + strLocation + '</td><td style="text-align: right;">' + strPer100 + '</td></tr>'; 
             }
-
+            */
+            tableRows = '';
             tableSection = sectionHeader + tableHeader + tableRows;
             tableSections += tableSection;
            // <div id="rank' + i +  '" style="display: none;"></div>
