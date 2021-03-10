@@ -68,6 +68,7 @@ Promise.all([
         d.concatLocDate = d.province + d.date;
         d.source = "ccodwg";
     });
+
     var arrAdminPreJan12 = arrAdminCanada.filter(function(d) { 
         return d.date_sort < 20210112;
     });
@@ -80,8 +81,9 @@ Promise.all([
     // sort vacDetail array by location asc & date desc
     vacDetail.sort((a, b) => a.location.localeCompare(b.location) || a.date_sort - b.date_sort);
 
-    // extract total vaccinations per 100 into new array to fill forward values
+    // extract total vaccinations & per 100 into new array to fill forward values
     var arrVacPer100 = vacDetail.map(function(i){return i.total_vaccinations_per_hundred;});
+    var arrTotalVaccinations = vacDetail.map(function(i){return i.total_vaccinations;});
     function getFilledUpArray(array) {
         let lastDefinedElement;
         return array.map(element => {
@@ -95,11 +97,13 @@ Promise.all([
 
     // get total_vaccinations_per_hundred_filled
     arrVacPer100Filled = getFilledUpArray(arrVacPer100);
+    arrTotalVaccinationsFilled = getFilledUpArray(arrTotalVaccinations);
 
     // write total_vaccinations_per_hundred_filled back to vacDetail
     var i = 0;
     vacDetail.forEach(function(d) {
         d.total_vaccinations_per_hundred_filled = arrVacPer100Filled[i];
+        d.total_vaccinations_filled = arrTotalVaccinationsFilled[i];
         i++;
     });
 
@@ -121,8 +125,8 @@ Promise.all([
     const vacDetailLoc = equijoinWithDefault(
         vacDetail, locationPop, 
         "location", "location", 
-        ({location, iso_code, date, date_sort, total_vaccinations, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, source}, {vaccines, last_observation_date, owid_vaccine_alt, vaccine_group, population}, ) => 
-        ({location, iso_code, date, date_sort, total_vaccinations, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, vaccines, last_observation_date, owid_vaccine_alt, vaccine_group, population, source}), 
+        ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, source}, {vaccines, last_observation_date, owid_vaccine_alt, vaccine_group, population}, ) => 
+        ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, vaccines, last_observation_date, owid_vaccine_alt, vaccine_group, population, source}), 
         {population: null});
 
     // filter vaccinations dataset by location max date to get current records only
@@ -131,6 +135,7 @@ Promise.all([
         return d.date == d.last_observation_date;
     });
 
+    /*
     // append arrAdminPreJan12 to vacDetailLoc to add pre Jan 12 total per 100 data
     for (var i=0; i<arrAdminPreJan12.length; i++) {
         obj = {
@@ -139,12 +144,14 @@ Promise.all([
             date_sort : arrAdminPreJan12[i].date_sort,
             last_observation_date : arrAdminPreJan12[i].report_date,
             total_vaccinations : arrAdminPreJan12[i].cumulative_avaccine,
+            total_vaccinations_filled : arrAdminPreJan12[i].cumulative_avaccine,
             total_vaccinations_per_hundred : arrAdminPreJan12[i].total_vaccinations_per_hundred,
             total_vaccinations_per_hundred_filled : arrAdminPreJan12[i].total_vaccinations_per_hundred,
             concatLocDate : arrAdminPreJan12[i].concatLocDate
         }
         vacDetailLoc.push(obj);
     }
+    */
 
     // sort vacDetailLoc array by location asc & date desc to get pre Jan 12 records in correct order
     vacDetailLoc.sort((a, b) => a.location.localeCompare(b.location) || a.date_sort - b.date_sort);
@@ -273,8 +280,8 @@ Promise.all([
         var yRank = [];
         var yCtryCount = [];
 
-        // create table row var with table header row
-        var tableSections = '';
+        // create element with all rank tables
+        var rankTables = '';
     
         // create the daily ranks and country counts:
         // loop through vacDates desc, get max date per country, that is less than loop date
@@ -317,6 +324,7 @@ Promise.all([
             // join loopLocMaxDate and vacDaily on concat location and date to get  total_vaccinations_per_hundred value from vacDaily for loop date
             loopLocMaxDate.forEach(function(d) {
                 d.total_vaccinations_per_hundred_filled = vacDaily.find(x => x.concatLocDate === d.concatLocDate).total_vaccinations_per_hundred_filled;
+                d.total_vaccinations_filled = vacDaily.find(x => x.concatLocDate === d.concatLocDate).total_vaccinations_filled;
             });
             
             // order loopLocMaxDate desc by total_vaccinations_per_hundred to get rank
@@ -334,39 +342,31 @@ Promise.all([
             x.push(loopDate);
             yCtryCount.push(loopLocMaxDate.length);
 
-            // define table variables
-            var sectionHeader = '';
-            var tableSection = '';
-            var tableHeader = '';
+            // define table section variables
             var tableRows = '';
-
-            // create table section
-            sectionHeader = ''; //'<h5 style="margin-top: 10px;">' + loopDate + ' Rank: ' + canadaRank + ' / ' + loopLocMaxDate.length + '</h5>'; 
-            tableHeader = ''; // '<table class="table-sm"><tr><th>Rank</th><th>Location</th><th>Doses Per 100</th></tr>';
-
-            //console.log(loopDate, canadaRank, loopLocMaxDate.length)
-
-            /*
-            // create table location rows
+            
+            // create table rows
             for (var j=0; j < loopLocMaxDate.length; j++) {
                 tableRow = loopLocMaxDate[j];
-                console.log(loopDate, loopLocMaxDate.length);
                 if (tableRow.location == 'Canada') {
                     strRank = '<span style="font-weight: bold; color: red;">' + (parseInt(j) + 1) + '</span>';
                     strLocation = '<span style="font-weight: bold; color: red;">' + tableRow.location + '</span>';
                     strPer100 = '<span style="font-weight: bold; color: red;">' + parseFloat(tableRow.total_vaccinations_per_hundred_filled).toFixed(2) + '</span>';
+                    strAdmin = '<span style="font-weight: bold; color: red;">' + parseInt(tableRow.total_vaccinations_filled).toLocaleString() + '</span>';
                 } else {
                     strRank= (parseInt(j) + 1);
                     strLocation = tableRow.location;
-                    strPer100 = parseFloat(tableRow.total_vaccinations_per_hundred_filled).toFixed(2)
+                    strPer100 = parseFloat(tableRow.total_vaccinations_per_hundred_filled).toFixed(2);
+                    strAdmin = parseInt(tableRow.total_vaccinations_filled).toLocaleString();
                 };
-                tableRows += '<tr class="tbl_values_row"><td>' + strRank + '</td><td>' + strLocation + '</td><td style="text-align: right;">' + strPer100 + '</td></tr>'; 
+                tableRows += '<tr class="tbl_values_row"><td>' + strRank + '</td><td>' + strLocation + '</td><td style="text-align: right;">' + strPer100 + '</td><td style="text-align: right;">' + strAdmin + '</td></tr>';
             }
-            */
-            tableRows = '';
-            tableSection = sectionHeader + tableHeader + tableRows;
-            tableSections += tableSection;
-           // <div id="rank' + i +  '" style="display: none;"></div>
+            
+            // create table section
+            rankTable = '<table class="table-sm" id="rankTbl'+ i +'" style="display:none;"><tr><th>Rank</th><th>Location</th><th>Doses Per 100</th><th>Total Doses</th></tr>';
+            rankTable += tableRows;
+            rankTable += '<p class="font-weight-bold" style="margin-top: 20px;">' + loopDate + ' Rank: ' + canadaRank + ' / ' + loopLocMaxDate.length + ' <a class="small font-italic" onclick="toggleTable(&apos;rankTbl'+ i +'&apos;);" href="javascript:void(0);">hide/show</a> </h5>'; 
+            rankTables += rankTable;
         }
 
          // get max values for y axis range 
@@ -491,11 +491,11 @@ Promise.all([
         var divTable = document.createElement("div");
         divChart.id = 'div_canada_daily_rank_chart';
         var chartTitle = "Canada Daily Global Rank of Total Doses per 100 People - Tracking Canada's Changing Rank Relative To Other Countries";
-        var chartDesc = 'Shows Canada\'s global rank and # countries in OWID dataset by date. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data. Also while Canada has been administering vaccines since Dec 14 2020, the <a href="https://health-infobase.canada.ca/covid-19/vaccine-administration/" target=_blank">Canadian government data source</a> used by OWID only contains vaccination data starting Jan 12. Therefore, the <a href="https://github.com/ccodwg/Covid19Canada" target=_blank">COVID-19 Canada Open Data Working Group data</a> was used to get Canada\'s pre-Jan 12 rank. These datasets do not have perfectly matching dose counts which results in slight discontinuity from Jan 11 to 12 but otherwise the trend is represented well.';
+        var chartDesc = 'Shows Canada\'s global rank and # countries in OWID dataset by date. Note over time, as OWID adds new countries to its dataset, Canada\'s past rank may change to account for new data.';
         
         divTitle.innerHTML = chartTitle;
         divDesc.innerHTML = chartDesc;
-        divTable.innerHTML = tableSections;
+        divTable.innerHTML = '<h4>Daily Global Rank of Total Doses per 100 People</h4>' + '<p>One table per day containing a list of countries ordered by doses per 100 people rank, with country name, doses per 100 and total doses. Canada is highlighted red. Click <span class="font-italic">hide/show</span> to see and hide table details.</p>' + rankTables;
         document.getElementById('div_canada_daily_rank').append(divTitle);
         document.getElementById('div_canada_daily_rank').append(divDesc);
         document.getElementById('div_canada_daily_rank').append(divChart);
@@ -612,9 +612,15 @@ Promise.all([
 
 });
 
-
-
 // FUNCTIONS
+
+function toggleTable(tableId) {
+   if (document.getElementById(tableId).style.display == "table" ) {
+       document.getElementById(tableId).style.display="none";
+   } else {
+      document.getElementById(tableId).style.display="table";
+   }
+}
 
 function getPercentile(arrRank, arrCtryCount) {
     results = [];
