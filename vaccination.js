@@ -495,7 +495,7 @@ Promise.all([
         
         divTitle.innerHTML = chartTitle;
         divDesc.innerHTML = chartDesc;
-        divTable.innerHTML = '<h4>Daily Global Rank of Total Doses per 100 People</h4>' + '<p>One table per day containing a list of countries ordered by doses per 100 people rank, with country name, doses per 100 and total doses. Canada is highlighted red. Click <span class="font-italic">hide/show</span> to see and hide table details.</p>' + rankTables;
+        divTable.innerHTML = '<h4>Daily Global Rank of Total Doses per 100 People</h4>' + '<p>One table per day containing a list of countries ordered by doses administered per 100 people rank, with country name, doses administered per 100 and total doses administered. Canada is highlighted red. Note Canada is in first group of countries to administer COVID-19 vaccines in mid-Dec 2020. Click <span class="font-italic">hide/show</span> to see and hide table details.</p>' + rankTables;
         document.getElementById('div_canada_daily_rank').append(divTitle);
         document.getElementById('div_canada_daily_rank').append(divDesc);
         document.getElementById('div_canada_daily_rank').append(divChart);
