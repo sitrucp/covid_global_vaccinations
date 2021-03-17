@@ -41,9 +41,9 @@ Promise.all([
         d.concatLocDate = d.location + d.date;
     });
 
-    // created filtered vacDetail array excluding dupe locations from vaccinations array
+    // exclude dupe locations from vaccinations array
     const vacDetail = arrVaccinations.filter(function(d) { 
-        return d.location != "England" && d.location != "European Union" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Scotland" && d.location != "Wales" && d.location != "World";
+        return d.location != "England" && d.location != "European Union" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Scotland" && d.location != "Wales" && d.location != "World" && d.location != "Africa" && d.location != "Asia" && d.location != "Europe" && d.location != "North America" && d.location != "South America" && d.location != "Oceania";
     });
 
     // sort vacDetail array by location asc & date desc
