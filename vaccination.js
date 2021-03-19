@@ -101,9 +101,16 @@ Promise.all([
     // CREATE CHART
     function createGlobalRankChart() {
 
-        // order vaccinationMaxDate desc by total_vaccinations_per_hundred
+        // order vaccinationMaxDate desc by total_vaccinations_per_hundred to get rank
         vacCurrent.sort((a, b) => {
             return b.total_vaccinations_per_hundred_filled - a.total_vaccinations_per_hundred_filled;
+        });
+
+        // sort only to create bar chart y values to sort desc for appearance sake only
+        var vacCurrentRankSort = [...vacCurrent]; 
+        
+        vacCurrentRankSort.sort((a, b) => {
+            return a.total_vaccinations_per_hundred_filled - b.total_vaccinations_per_hundred_filled;
         });
 
         // Create chart text content
@@ -129,8 +136,8 @@ Promise.all([
         var yPer100 = [];
  
         // create axes x and y arrays
-        for (var i=0; i<vacCurrent.length; i++) {
-            var row = vacCurrent[i];
+        for (var i=0; i<vacCurrentRankSort.length; i++) {
+            var row = vacCurrentRankSort[i];
             x.push(row['location']);
             yPer100.push(row['total_vaccinations_per_hundred_filled']);
         }
