@@ -3,9 +3,7 @@
 var file_update_time = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/owid-covid-data-last-updated-timestamp.txt";
 var file_vaccinations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/vaccinations.csv";
 var file_locations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/locations.csv";
-
-// get files from my github repository
-var file_population = "population.csv";
+var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_2020.csv";
 
 // define color variables 
 var clrBlue = 'rgba(49,130,189,.9)';
@@ -79,7 +77,7 @@ Promise.all([
     // population not used in page yet
     const locationPop = equijoinWithDefault(
         arrLocations, arrPopulation, 
-        "location", "country", 
+        "location", "entity", 
         ({location, vaccines, last_observation_date}, {population}, ) => 
         ({location, vaccines, last_observation_date, population}), 
         {population:null});
