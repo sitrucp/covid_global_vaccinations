@@ -103,7 +103,7 @@ Promise.all([
 
         // order vaccinationMaxDate desc by total_vaccinations_per_hundred
         vacCurrent.sort((a, b) => {
-            return a.total_vaccinations_per_hundred_filled - b.total_vaccinations_per_hundred_filled;
+            return b.total_vaccinations_per_hundred_filled - a.total_vaccinations_per_hundred_filled;
         });
 
         // Create chart text content
