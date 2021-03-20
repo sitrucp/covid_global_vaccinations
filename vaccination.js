@@ -124,7 +124,7 @@ Promise.all([
         var divChart = document.createElement("div");
         divChart.id = 'div_global_rank_chart';
         var chartTitle = 'Global Total Doses per 100 People - Tracking How ' + selCountry + ' Compares To Other Countries';
-        var chartDesc = 'Shows ' + selCountry + ' relative ranking by total doses per 100 people compared to all countries currently in OWID dataset. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
+        var chartDesc = 'Shows global rank by total doses administered per 100 people for all ' + countryCount + ' countries currently in OWID dataset. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
         divTitle.innerHTML = chartTitle;
         divDesc.innerHTML = chartDesc;
         document.getElementById('div_global_rank').append(divTitle);
@@ -441,8 +441,8 @@ Promise.all([
         var divChart = document.createElement("div");
         var divTable = document.createElement("div");
         divChart.id = 'div_daily_rank_chart';
-        var chartTitle = selCountry + ' Daily Global Rank of Total Doses per 100 People - Tracking ' + selCountry + ' Changing Rank Relative To Other Countries';
-        var chartDesc = 'Shows ' + selCountry + ' global rank and # countries in OWID dataset by date. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
+        var chartTitle = selCountry + ' Canada Daily Global Rank of Total Doses per 100 People - Tracking ' + selCountry + ' Daily Rank Relative To Other Countries';
+        var chartDesc = 'Shows ' + selCountry + ' global rank, # countries in OWID dataset, and rank percentile by date. Rank percentile captures ' + selCountry + ' daily relative rank as more countries added to OWID dataset.';
         divTitle.innerHTML = chartTitle;
         divDesc.innerHTML = chartDesc;
         divTable.innerHTML = '<h4>Daily Global Rank of Total Doses per 100 People</h4>' + '<p>One table per day containing a list of countries ordered by doses administered per 100 people rank, with country name, doses administered per 100 and total doses administered. ' + selCountry + ' is highlighted red. Click <span class="font-italic">hide/show</span> to see and hide table details.</p>' + rankTables;
