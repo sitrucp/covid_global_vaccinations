@@ -5,7 +5,10 @@ var file_vaccinations = "https://raw.githubusercontent.com/owid/COVID-19-data/ma
 var file_locations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/locations.csv";
 var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_2020.csv";
 
-// define color variables 
+// to do: use stable url instead
+// https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv
+
+// define color variables
 var clrBlue = 'rgba(49,130,189,.9)';
 var clrGray = 'rgba(204,204,204,.9)';
 var clrBlack = 'rgba(0,0,0,.9)';
@@ -35,47 +38,36 @@ Promise.all([
 
     // create sortable value from date and concat to use in matching/joins
     arrVaccinations.forEach(function(d) {
+        d.daily_vaccinations_per_hundred = (d.daily_vaccinations_per_million / 10000).toFixed(2);
         d.date_sort = d.date.split('-').join('');
         d.concatLocDate = d.location + d.date;
     });
 
     // exclude dupe locations from vaccinations array
-    const vacDetail = arrVaccinations.filter(function(d) { 
+    var arrVacDetail = arrVaccinations.filter(function(d) { 
         return d.location != "England" && d.location != "European Union" && d.location != "Gibraltar" && d.location != "Northern Ireland" && d.location != "Scotland" && d.location != "Wales" && d.location != "World" && d.location != "Africa" && d.location != "Asia" && d.location != "Europe" && d.location != "North America" && d.location != "South America" && d.location != "Oceania";
     });
 
-    // sort vacDetail array by location asc & date desc
-    vacDetail.sort((a, b) => a.location.localeCompare(b.location) || a.date_sort - b.date_sort);
+    // sort arrVacDetail array by location asc & date desc to get ready for fill up next
+    arrVacDetail.sort((a, b) => a.location.localeCompare(b.location) || a.date_sort - b.date_sort);
 
-    // extract total vaccinations & per 100 into new array to fill forward values
-    var arrVacPer100 = vacDetail.map(function(i){return i.total_vaccinations_per_hundred;});
-    var arrTotalVaccinations = vacDetail.map(function(i){return i.total_vaccinations;});
-    function getFilledUpArray(array) {
-        let lastDefinedElement;
-        return array.map(element => {
-            if (element === "") {
-                element = lastDefinedElement;
-            }
-            lastDefinedElement = element;
-            return element;
-        });
-    }
+    // create new fill up arrays
+    arrVacPer100Filled = getFilledUpArray(arrVacDetail.map(function(i){return i.total_vaccinations_per_hundred;}));
+    arrTotalVaccinationsFilled = getFilledUpArray(arrVacDetail.map(function(i){return i.total_vaccinations;}));
+    arrDailyVaccinationsFilled = getFilledUpArray(arrVacDetail.map(function(i){return i.daily_vaccinations_per_hundred;}));
 
-    // create fill forward value arrays
-    arrVacPer100Filled = getFilledUpArray(arrVacPer100);
-    arrTotalVaccinationsFilled = getFilledUpArray(arrTotalVaccinations);
-
-    // write fill forward value arrays back to vacDetail
-    var i = 0;
-    vacDetail.forEach(function(d) {
+    // write new fill up arrays back to arrVacDetail
+    let i = 0;
+    arrVacDetail.forEach(function(d) {
         d.total_vaccinations_per_hundred_filled = arrVacPer100Filled[i];
         d.total_vaccinations_filled = arrTotalVaccinationsFilled[i];
+        d.daily_vaccinations_per_hundred_filled = arrDailyVaccinationsFilled[i];
         i++;
     });
 
     // left join arrPopulation to location
     // population not used in page yet
-    const locationPop = equijoinWithDefault(
+    var locationPop = equijoinWithDefault(
         arrLocations, arrPopulation, 
         "location", "entity", 
         ({location, vaccines, last_observation_date}, {population}, ) => 
@@ -83,67 +75,65 @@ Promise.all([
         {population:null});
 
     // left join locationPop to vaccinations
-    const vacDetailLoc = equijoinWithDefault(
-        vacDetail, locationPop, 
+    var arrVacDetailLoc = equijoinWithDefault(
+        arrVacDetail, locationPop, 
         "location", "location", 
-        ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_hundred, source}, {vaccines, last_observation_date, population}, ) => 
-        ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_hundred, vaccines, last_observation_date, population, source}), 
+        ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, daily_vaccinations_per_hundred_filled, source}, {vaccines, last_observation_date, population}, ) => 
+        ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred,  daily_vaccinations_per_hundred_filled, vaccines, last_observation_date, population, source}), 
         {population: null});
 
     // filter vaccinations dataset by location max date to get most current records only
-    const vacCurrent = vacDetailLoc.filter(function(d) {
+    var arrVacCurrent = arrVacDetailLoc.filter(function(d) {
         return d.date == d.last_observation_date;
     });
 
-    // sort vacDetailLoc array by location asc & date desc
-    vacDetailLoc.sort((a, b) => a.location.localeCompare(b.location) || a.date_sort - b.date_sort);
-
     // CREATE CHART
-    function createGlobalRankChart() {
-
-        // order vaccinationMaxDate desc by total_vaccinations_per_hundred to get rank
-        vacCurrent.sort((a, b) => {
-            return b.total_vaccinations_per_hundred_filled - a.total_vaccinations_per_hundred_filled;
-        });
-
-        // sort only to create bar chart y values to sort desc for appearance sake only
-        var vacCurrentRankSort = [...vacCurrent]; 
+    function createTotalPer100RankChart() {
+        // create new array to sort
+        let arrVacCurrentTotalRank = [...arrVacCurrent];
+        let arrVacCurrentTotalChart = [...arrVacCurrent];
         
-        vacCurrentRankSort.sort((a, b) => {
+        // sort to get chart order
+        arrVacCurrentTotalChart.sort((a, b) => {
             return a.total_vaccinations_per_hundred_filled - b.total_vaccinations_per_hundred_filled;
         });
 
+        // sort to get rank order
+        arrVacCurrentTotalRank.sort((a, b) => {
+            return b.total_vaccinations_per_hundred_filled - a.total_vaccinations_per_hundred_filled;
+        });
+
         // Create chart text content
-        var countryRank = vacCurrent.findIndex(x => x.location === selCountry) + 1;
-        var per100 = vacCurrent.find(x => x.location === selCountry).total_vaccinations_per_hundred_filled;
-        var countryCount = vacCurrent.length;
+        let countryRank = arrVacCurrentTotalRank.findIndex(x => x.location === selCountry) + 1;
+        let per100 = arrVacCurrentTotalRank.find(x => x.location === selCountry).total_vaccinations_per_hundred_filled;
+        let countryCount = arrVacCurrent.length;
 
         // create divs, para for chart
-        var divTitle = document.createElement("h4");
-        var divDesc= document.createElement("p");
-        var divChart = document.createElement("div");
-        divChart.id = 'div_global_rank_chart';
-        var chartTitle = 'Global Total Doses per 100 People - Tracking How ' + selCountry + ' Compares To Other Countries';
-        var chartDesc = 'Shows global rank by total doses administered per 100 people for all ' + countryCount + ' countries currently in OWID dataset. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
+        let divTitle = document.createElement("h4");
+        let divDesc= document.createElement("p");
+        let divChart = document.createElement("div");
+        divChart.id = 'div_total_per100_rank_chart';
+        let chartTitle = 'Global Total Doses per 100 People - Tracking How ' + selCountry + ' Compares To Other Countries';
+        let chartDesc = 'Shows global rank by total doses administered per 100 people for all ' + countryCount + ' countries currently in OWID dataset. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
         divTitle.innerHTML = chartTitle;
         divDesc.innerHTML = chartDesc;
-        document.getElementById('div_global_rank').append(divTitle);
-        document.getElementById('div_global_rank').append(divDesc);
-        document.getElementById('div_global_rank').append(divChart);
+        document.getElementById('div_total_per100_rank').append(divTitle);
+        document.getElementById('div_total_per100_rank').append(divDesc);
+        document.getElementById('div_total_per100_rank').append(divChart);
  
         // define x and y axis arrays
-        var x = [];
-        var yPer100 = [];
+        let x = [];
+        let yPer100 = [];
  
         // create axes x and y arrays
-        for (var i=0; i<vacCurrentRankSort.length; i++) {
-            var row = vacCurrentRankSort[i];
+        for (let i=0; i<arrVacCurrentTotalChart.length; i++) {
+            let row = arrVacCurrentTotalChart[i];
             x.push(row['location']);
             yPer100.push(row['total_vaccinations_per_hundred_filled']);
         }
 
         // create chart trace
-        var trPer100 = {
+        let trPer100 = {
             name: 'Doses Per 100',
             hoverlabel: {
                 namelength :-1
@@ -160,7 +150,7 @@ Promise.all([
         };
 
         // create chart layout
-        var layout = {
+        let layout = {
             title: {
                 text:'Global Total Doses per 100 People <br> ' + selCountry + ' ' + per100 + ' Ranks ' + countryRank + ' of ' + countryCount + ' countries',
                 font: {
@@ -193,18 +183,121 @@ Promise.all([
         }
 
         // define plotly data, config, create chart
-        var data = [trPer100];
-        var config = {responsive: true}
-        Plotly.newPlot('div_global_rank_chart', data, layout, config);
+        let data = [trPer100];
+        let config = {responsive: true}
+        Plotly.newPlot('div_total_per100_rank_chart', data, layout, config);
+
+    }
+
+    
+    // CREATE CHART
+    function createDailyPer100RankChart() {
+        // create new array to sort
+        let arrVacCurrentDailyRank = [...arrVacCurrent];
+        let arrVacCurrentDailyChart = [...arrVacCurrent];
+        
+        // sort to get chart order
+        arrVacCurrentDailyChart.sort((a, b) => {
+            return a.daily_vaccinations_per_hundred_filled - b.daily_vaccinations_per_hundred_filled;
+        });
+
+        // sort to get rank order
+        arrVacCurrentDailyRank.sort((a, b) => {
+            return b.daily_vaccinations_per_hundred_filled - a.daily_vaccinations_per_hundred_filled;
+        });
+
+        // Create chart text content
+        let countryRank = arrVacCurrentDailyRank.findIndex(x => x.location === selCountry) + 1;
+        let per100 = arrVacCurrentDailyRank.find(x => x.location === selCountry).daily_vaccinations_per_hundred_filled;
+        let countryCount = arrVacCurrent.length;
+
+        // create divs, para for chart
+        let divTitle = document.createElement("h4");
+        let divDesc= document.createElement("p");
+        let divChart = document.createElement("div");
+        divChart.id = 'div_daily_per100_rank_chart';
+        let chartTitle = 'Global Daily Doses per 100 People - Tracking How ' + selCountry + ' Compares To Other Countries';
+        let chartDesc = 'Shows global rank by daily doses administered per 100 people for all ' + countryCount + ' countries currently in OWID dataset. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
+        divTitle.innerHTML = chartTitle;
+        divDesc.innerHTML = chartDesc;
+        document.getElementById('div_daily_per100_rank').append(divTitle);
+        document.getElementById('div_daily_per100_rank').append(divDesc);
+        document.getElementById('div_daily_per100_rank').append(divChart);
+ 
+        // define x and y axis arrays
+        let x = [];
+        let yPer100 = [];
+ 
+        // create axes x and y arrays
+        for (let i=0; i<arrVacCurrentDailyChart.length; i++) {
+            let row = arrVacCurrentDailyChart[i];
+            x.push(row['location']);
+            yPer100.push(row['daily_vaccinations_per_hundred_filled']);
+        }
+
+        // create chart trace
+        let trPer100 = {
+            name: 'Doses Per 100',
+            hoverlabel: {
+                namelength :-1
+            },
+            x: yPer100,
+            y: x,
+            showgrid: false,
+            fill: 'tozeroy',
+            type: 'bar',
+            orientation: 'h',
+            marker:{
+                color: fillColor(x) // color selCountry bar blue, other bars gray
+            },
+        };
+
+        // create chart layout
+        let layout = {
+            title: {
+                text:'Global Daily Doses per 100 People <br> ' + selCountry + ' ' + per100 + ' Ranks ' + countryRank + ' of ' + countryCount + ' countries',
+                font: {
+                    size: 14
+                },
+            },
+            height: 1300,
+            autosize: true,
+            autoscale: false,
+            margin: {
+                l: 150,
+                r: 40,
+                b: 60,
+                t: 80,
+                pad: 2
+            },
+            xaxis: { 
+                tickfont: {
+                    size: 11
+                },
+                showgrid: false,
+            },
+            yaxis: { 
+                tickfont: {
+                    size: 9
+                },
+                showgrid: false,
+                tickmode: 'linear',
+            }
+        }
+
+        // define plotly data, config, create chart
+        let data = [trPer100];
+        let config = {responsive: true}
+        Plotly.newPlot('div_daily_per100_rank_chart', data, layout, config);
 
     }
 
 
     // CREATE CHART
-    function createDailyRankChart() {
+    function createTotalPer100RankHistoryChart() {
 
         // create vacDates array with unique dates to loop through 
-        var vacDates = [...new Set(vacDetailLoc.map(item => item.date))];
+        let vacDates = [...new Set(arrVacDetailLoc.map(item => item.date))];
 
         // sort vacDates array desc order on date modified to integer
         // to loop through them desc below
@@ -216,25 +309,25 @@ Promise.all([
         });
 
         // define x and y axis arrays
-        var x = [];
-        var yRank = [];
-        var yCtryCount = [];
+        let x = [];
+        let yRank = [];
+        let yCtryCount = [];
 
         //  define rank table varible
-        var rankTables = '';
+        let rankTables = '';
     
         // create the daily ranks and country counts:
         // loop through vacDates desc, get max date per country, that is less than loop date
         // assign max date less than loop date as country's last report date
-        for (var i=0; i<vacDates.length; i++) {
-            var loopDate = vacDates[i];
-            // filter vacDetailLoc to dates less than loop date
-            var vacDaily = vacDetailLoc.filter(function(d) { 
+        for (let i=0; i<vacDates.length; i++) {
+            let loopDate = vacDates[i];
+            // filter arrVacDetailLoc to dates less than loop date
+            let vacDaily = arrVacDetailLoc.filter(function(d) { 
                 return d.date <= loopDate;
             });
 
             // summarize location by country's last date reported <= loopDate
-            var loopLocMaxDate = d3.nest()
+            let loopLocMaxDate = d3.nest()
             .key(function(d) { 
                 return d.location; 
             })
@@ -273,8 +366,8 @@ Promise.all([
             });
 
             // create Canada current variables
-            var totalVax = loopLocMaxDate.findIndex(x => x.location === selCountry).total_vaccinations_filled;
-            var countryRank = loopLocMaxDate.findIndex(x => x.location === selCountry) + 1;
+            let totalVax = loopLocMaxDate.findIndex(x => x.location === selCountry).total_vaccinations_filled;
+            let countryRank = loopLocMaxDate.findIndex(x => x.location === selCountry) + 1;
             yRank.push(countryRank);
             // var per100 = loopLocMaxDate.findIndex(x => x.location === selCountry).total_vaccinations_per_hundred_filled;
             // var location = loopLocMaxDate.findIndex(x => x.location === selCountry).location; 
@@ -285,17 +378,16 @@ Promise.all([
             yCtryCount.push(vCountryCount);
 
             // define table section variables
-            var tableRows = '';
+            let tableRows = '';
             
             // create table rows 
-            for (var j=0; j < loopLocMaxDate.length; j++) {
+            for (let j=0; j < loopLocMaxDate.length; j++) {
                 tableRow = loopLocMaxDate[j];
                 vLocation = tableRow.location;
                 vRank = (parseInt(j) + 1);
                 vPer100 = parseFloat(tableRow.total_vaccinations_per_hundred_filled).toFixed(2);
                 vTotalVax = parseInt(tableRow.total_vaccinations_filled).toLocaleString();
                 vRankPctile = getRankPctile(vRank, vCountryCount);
-
 
                 if (tableRow.location == selCountry) {
                     strRank = '<span style="font-weight: bold; color: red;">' + vRank + '</span>';
@@ -321,11 +413,11 @@ Promise.all([
         }
         
         // create max values for y axis range 
-        var maxRank = Math.max(...yRank);
-        var maxCount = Math.max(...yCtryCount);
+        let maxRank = Math.max(...yRank);
+        let maxCount = Math.max(...yCtryCount);
 
          // create chart traces
-        var trCountryRank = {
+         let trCountryRank = {
             name: selCountry + ' Rank',
             hoverlabel: {
                 namelength :-1
@@ -338,7 +430,7 @@ Promise.all([
             },
         };
 
-        var trCountryCount = {
+        let trCountryCount = {
             name: '# Countries',
             hoverlabel: {
                 namelength :-1
@@ -351,7 +443,7 @@ Promise.all([
             },
         };
 
-        var trRankPctile = {
+        let trRankPctile = {
             name: 'Rank Percentile',
             hoverlabel: {
                 namelength :-1
@@ -370,9 +462,9 @@ Promise.all([
         };
 
         // create chart layout
-        var layout = {
+        let layout = {
             title: {
-                text: selCountry + ' Doses per 100 People <br> Daily Global Rank',
+                text: selCountry + ' Total Doses per 100 People <br> Daily Global Rank',
                 font: {
                     size: 14
                 },
@@ -436,35 +528,307 @@ Promise.all([
         }
 
         // create content for section
-        var divTitle = document.createElement("h4");
-        var divDesc= document.createElement("p");
-        var divChart = document.createElement("div");
-        var divTable = document.createElement("div");
-        divChart.id = 'div_daily_rank_chart';
-        var chartTitle = selCountry + ' Canada Daily Global Rank of Total Doses per 100 People - Tracking ' + selCountry + ' Daily Rank Relative To Other Countries';
-        var chartDesc = 'Shows ' + selCountry + ' global rank, # countries in OWID dataset, and rank percentile by date. Rank percentile captures ' + selCountry + ' daily relative rank as more countries added to OWID dataset.';
+        let divTitle = document.createElement("h4");
+        let divDesc= document.createElement("p");
+        let divChart = document.createElement("div");
+        let divTable = document.createElement("div");
+        divChart.id = 'div_total_rank_history_chart';
+        let chartTitle = selCountry + ' Total Doses per 100 People History - Tracking ' + selCountry + ' Rank Over Time';
+        let chartDesc = 'Shows ' + selCountry + ' global rank by total doses per 100, # countries in OWID dataset, and rank percentile by date. Rank percentile captures rank independent of country count which increases with time.';
         divTitle.innerHTML = chartTitle;
         divDesc.innerHTML = chartDesc;
-        divTable.innerHTML = '<h4>Daily Global Rank of Total Doses per 100 People</h4>' + '<p>One table per day containing a list of countries ordered by doses administered per 100 people rank, with country name, doses administered per 100 and total doses administered. ' + selCountry + ' is highlighted red. Click <span class="font-italic">hide/show</span> to see and hide table details.</p>' + rankTables;
-        document.getElementById('div_daily_rank').append(divTitle);
-        document.getElementById('div_daily_rank').append(divDesc);
-        document.getElementById('div_daily_rank').append(divChart);
-        document.getElementById('div_daily_rank').append(divTable);
+        divTable.innerHTML = '<h4>Total Doses per 100 People</h4>' + '<p>One table per day containing a list of countries ordered by doses administered per 100 people rank, with country name, doses administered per 100 and total doses administered. ' + selCountry + ' is highlighted red. Click <span class="font-italic">hide/show</span> to see and hide table details.</p>' + rankTables;
+        document.getElementById('div_total_per100_rank_history').append(divTitle);
+        document.getElementById('div_total_per100_rank_history').append(divDesc);
+        document.getElementById('div_total_per100_rank_history').append(divChart);
+        //document.getElementById('div_total_per100_rank_history').append(divTable);
 
         // create plotly data, config, chart
-        var data = [trCountryRank, trRankPctile, trCountryCount];
-        var config = {responsive: true}
-        Plotly.newPlot('div_daily_rank_chart', data, layout, config);
+        let data = [trCountryRank, trRankPctile, trCountryCount];
+        let config = {responsive: true}
+        Plotly.newPlot('div_total_rank_history_chart', data, layout, config);
 
     }
 
+
+    // CREATE CHART
+    function createDailyPer100RankHistoryChart() {
+
+        // create vacDates array with unique dates to loop through 
+        let vacDates = [...new Set(arrVacDetailLoc.map(item => item.date))];
+
+        // sort vacDates array desc order on date modified to integer
+        // to loop through them desc below
+        vacDates.sort(function(a,b) {
+            a = a.split('-').join('');
+            b = b.split('-').join('');
+            //return a > b ? 1 : a < b ? -1 : 0; // asc
+            return a < b ? 1 : a > b ? -1 : 0; // desc
+        });
+
+        // define x and y axis arrays
+        let x = [];
+        let yRank = [];
+        let yCtryCount = [];
+
+        //  define rank table varible
+        let rankTables = '';
+    
+        // create the daily ranks and country counts:
+        // loop through vacDates desc, get max date per country, that is less than loop date
+        // assign max date less than loop date as country's last report date
+        for (let i=0; i<vacDates.length; i++) {
+            let loopDate = vacDates[i];
+            // filter arrVacDetailLoc to dates less than loop date
+            let vacDaily = arrVacDetailLoc.filter(function(d) { 
+                return d.date <= loopDate;
+            });
+
+            // summarize location by country's last date reported <= loopDate
+            let loopLocMaxDate = d3.nest()
+            .key(function(d) { 
+                return d.location; 
+            })
+            .rollup(function(v) { 
+                return {
+                    max_loop_date: d3.max(v, function(d) { return d.date; })
+                };
+            })
+            .entries(vacDaily)
+            .map(function(group) {
+                return {
+                    location: group.key,
+                    max_loop_date: group.value.max_loop_date
+                }
+            });
+
+            // create concat vacDaily location and date to join arrays
+            vacDaily.forEach(function(d) {
+                d.concatLocDate = d.location + d.date;
+            });
+
+            // create concat loopLocMaxDate location and date to join arrays
+            loopLocMaxDate.forEach(function(d) {
+                d.concatLocDate = d.location + d.max_loop_date;
+            });
+            
+            // join loopLocMaxDate and vacDaily on concat location and date to get  total_vaccinations_per_hundred value from vacDaily for loop date
+            loopLocMaxDate.forEach(function(d) {
+                d.daily_vaccinations_per_hundred_filled = vacDaily.find(x => x.concatLocDate === d.concatLocDate).daily_vaccinations_per_hundred_filled;
+                d.daily_vaccinations_filled = vacDaily.find(x => x.concatLocDate === d.concatLocDate).daily_vaccinations_filled;
+            });
+            
+            // order loopLocMaxDate desc by daily_vaccinations_per_hundred to get rank
+            loopLocMaxDate.sort((a, b) => {
+                return b.daily_vaccinations_per_hundred_filled - a.daily_vaccinations_per_hundred_filled;
+            });
+
+            // create Canada current variables
+            let totalVax = loopLocMaxDate.findIndex(x => x.location === selCountry).daily_vaccinations_filled;
+            let countryRank = loopLocMaxDate.findIndex(x => x.location === selCountry) + 1;
+            yRank.push(countryRank);
+            // var per100 = loopLocMaxDate.findIndex(x => x.location === selCountry).daily_vaccinations_per_hundred_filled;
+            // var location = loopLocMaxDate.findIndex(x => x.location === selCountry).location; 
+
+            // create x array and country count arrays
+            x.push(loopDate);
+            vCountryCount = loopLocMaxDate.length;
+            yCtryCount.push(vCountryCount);
+
+            // define table section variables
+            let tableRows = '';
+            
+            // create table rows 
+            for (let j=0; j < loopLocMaxDate.length; j++) {
+                tableRow = loopLocMaxDate[j];
+                vLocation = tableRow.location;
+                vRank = (parseInt(j) + 1);
+                vPer100 = parseFloat(tableRow.daily_vaccinations_per_hundred_filled).toFixed(2);
+                vDailyVax = parseInt(tableRow.daily_vaccinations_filled).toLocaleString();
+                vRankPctile = getRankPctile(vRank, vCountryCount);
+
+                if (tableRow.location == selCountry) {
+                    strRank = '<span style="font-weight: bold; color: red;">' + vRank + '</span>';
+                    strLocation = '<span style="font-weight: bold; color: red;">' + vLocation + '</span>';
+                    strPer100 = '<span style="font-weight: bold; color: red;">' + vPer100 + '</span>';
+                    strDailyVax = '<span style="font-weight: bold; color: red;">' + vDailyVax + '</span>';
+                    strRankPctile = '<span style="font-weight: bold; color: red;">' + vRankPctile + '</span>';
+                } else {
+                    strRank= vRank;
+                    strLocation = vLocation;
+                    strPer100 = vPer100;
+                    strDailyVax = vDailyVax;
+                    strRankPctile =  vRankPctile;
+                };
+                tableRows += '<tr class="tbl_values_row"><td>' + strRank + '</td><td>' + strLocation + '</td><td style="text-align: right;">' + strPer100 + '</td><td style="text-align: right;">' + strDailyVax + '</td><td style="text-align: right;">' + strRankPctile + '</td></tr>';
+            }
+            
+            // create table section
+            rankTable = '<table class="table-sm" id="rankTbl'+ i +'" style="display:none;"><tr><th>Rank</th><th>Location</th><th style="text-align: right;">Doses Per 100</th><th style="text-align: right;">Daily Doses</th><th style="text-align: right;">Rank Percentile</th></tr>';
+            rankTable += tableRows;
+            rankTable += '<p class="font-weight-bold" style="margin-top: 20px;">' + loopDate + ' Rank: ' + countryRank + ' / ' + vCountryCount + ' <a class="small font-italic" onclick="toggleTable(&apos;rankTbl'+ i +'&apos;);" href="javascript:void(0);">hide/show</a> </h5>'; 
+            rankTables += rankTable;
+        }
+        
+        // create max values for y axis range 
+        let maxRank = Math.max(...yRank);
+        let maxCount = Math.max(...yCtryCount);
+
+         // create chart traces
+         let trCountryRank = {
+            name: selCountry + ' Rank',
+            hoverlabel: {
+                namelength :-1
+            },
+            x: x,
+            y: yRank,
+            type: 'line',
+            marker:{
+                color: clrBlue
+            },
+        };
+
+        let trCountryCount = {
+            name: '# Countries',
+            hoverlabel: {
+                namelength :-1
+            },
+            x: x,
+            y: yCtryCount,
+            type: 'bar',
+            marker:{
+                color: clrGray
+            },
+        };
+
+        let trRankPctile = {
+            name: 'Rank Percentile',
+            hoverlabel: {
+                namelength :-1
+            },
+            yaxis: 'y2',
+            x: x,
+            y: getPercentile(yRank, yCtryCount),
+            type: 'line',
+            line: {
+                dash: 'dot',
+                width: 2
+            },
+            marker:{
+                color: clrBlue
+            },
+        };
+
+        // create chart layout
+        let layout = {
+            title: {
+                text: selCountry + ' Daily Doses per 100 People <br> Daily Global Rank',
+                font: {
+                    size: 14
+                },
+            },
+            autosize: true,
+            autoscale: false,
+            //width: 800,
+            height: 500,
+            margin: {
+                l: 80,
+                r: 80,
+                b: 80,
+                t: 180
+            },
+            showlegend: true,
+            legend: {
+                "orientation": "h",
+                "y": 1.26, 
+                "x": 0.25,
+                xanchor: 'left',
+                bgcolor: clrWhiteTransparent,
+                font: {
+                    size: 10
+                },
+            },
+            xaxis: { 
+                tickfont: {
+                    size: 11
+                },
+                showgrid: false
+            },
+            yaxis: { 
+                title: {
+                    text: 'rank & country count',
+                    font: {
+                        size: 12
+                    },
+                },
+                tickfont: {
+                    size: 11
+                },
+                range:[0, roundUp10(maxCount)],
+                showgrid: false
+            },
+            yaxis2: {
+                title: {
+                    text: 'rank percentile',
+                    font: {
+                        size: 11,
+                    },
+                },
+                tickfont: {
+                    size: 11
+                },
+                range: [0, 100],
+                overlaying: 'y',
+                side: 'right',
+                showgrid: false,
+                rangemode: 'tozero',
+            }
+        }
+
+        // create content for section
+        let divTitle = document.createElement("h4");
+        let divDesc= document.createElement("p");
+        let divChart = document.createElement("div");
+        let divTable = document.createElement("div");
+        divChart.id = 'div_daily_rank_history_chart';
+        let chartTitle = selCountry + ' Daily Doses per 100 People History - Tracking ' + selCountry + ' Rank Over Time';
+        let chartDesc = 'Shows ' + selCountry + ' global rank by daily doses per 100, # countries in OWID dataset, and rank percentile by date. Rank percentile captures rank independent of country count which increases with time.';
+        divTitle.innerHTML = chartTitle;
+        divDesc.innerHTML = chartDesc;
+        divTable.innerHTML = '<h4>Daily Doses per 100 People</h4>' + '<p>One table per day containing a list of countries ordered by daily doses administered per 100 people rank, with country name, doses administered per 100 and total doses administered. ' + selCountry + ' is highlighted red. Click <span class="font-italic">hide/show</span> to see and hide table details.</p>' + rankTables;
+        document.getElementById('div_daily_per100_rank_history').append(divTitle);
+        document.getElementById('div_daily_per100_rank_history').append(divDesc);
+        document.getElementById('div_daily_per100_rank_history').append(divChart);
+        //document.getElementById('div_daily_per100_rank_history').append(divTable);
+
+        // create plotly data, config, chart
+        let data = [trCountryRank, trRankPctile, trCountryCount];
+        let config = {responsive: true}
+        Plotly.newPlot('div_daily_rank_history_chart', data, layout, config);
+
+    }
+    
     // create charts when page loads
-    createGlobalRankChart();
-    createDailyRankChart();
+    createTotalPer100RankChart();
+    createDailyPer100RankChart();
+    createTotalPer100RankHistoryChart();
+    createDailyPer100RankHistoryChart();
 
 });
 
 // FUNCTIONS
+
+// fill up arrays
+function getFilledUpArray(array) {
+    let lastDefinedElement;
+    return array.map(element => {
+        if (element === "") {
+            element = lastDefinedElement;
+        }
+        lastDefinedElement = element;
+        return element;
+    });
+}
 
 function toggleTable(tableId) {
    if (document.getElementById(tableId).style.display == "table" ) {
@@ -482,7 +846,7 @@ function getRankPctile(rank, ctryCount) {
 // get rank percentile for array of ranks / country counts
 function getPercentile(arrRank, arrCtryCount) {
     results = [];
-    for (var i=0; i<arrRank.length; i++) {
+    for (let i=0; i<arrRank.length; i++) {
         if (arrRank[i] > 0) {
             results.push(parseInt((arrCtryCount[i] - arrRank[i] + 1) / arrCtryCount[i] * 100));
         } else {
@@ -504,15 +868,15 @@ function equijoinWithDefault(xs, ys, primary, foreign, sel, def) {
 }
 
 function changeTimezone(d) {
-    var date = new Date(d);
-    var dateEST = new Date(date.setHours(date.getHours() - 5));
+    let date = new Date(d);
+    let dateEST = new Date(date.setHours(date.getHours() - 5));
     return new Date(dateEST.getTime() - (dateEST.getTimezoneOffset() * 60000)).toISOString().replace('T', ' ').slice(0, -8) + ' EST';
 }
 
 // assign bar color based on location
 function fillColor(x) {
     colors = [];
-    for (var i=0; i<x.length; i++) {
+    for (let i=0; i<x.length; i++) {
         if (x[i] == selCountry) {
             colors.push(clrBlue);
         } else {

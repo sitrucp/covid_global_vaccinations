@@ -1,12 +1,24 @@
 # Canada COVID-19 Vaccine Administration vs Other Countries
 
-These visualizations illustrate Canada's COVID-19 vaccine dose administration global ranking and daily changes. The 3 visualizations include:
-            
-* "Total Doses Per 100 Persons" is shown for all countries administering vaccines that are tracked by Our World in Data organization. Canada's value is highlighted and shows current global ranking by doses per 100 people.
-        
-* Canada's "Total Doses Per 100 Persons" and it's global ranking are shown by date. This shows Canada's relative global ranking changes by day. A higher rank means that other countries are administering more doses per 100 people than Canada.
+These visualizations illustrate Canada's COVID-19 vaccine dose administration global ranking and daily changes. The 4 visualizations include:
 
-* Canada's "Daily Doses Per 100 Persons" is shown by date. This metric shows Canada's actual daily dose administration.
+## Tracking How Canada Compares To Other 
+
+* Total Doses Per 100 People - includes all countries administering vaccines that are tracked by Our World in Data. Canada's value is highlighted and shows current global ranking by 
+
+* Daily Doses Per 100 People - includes all countries administering vaccines that are tracked by Our World in Data. Canada's value is highlighted and shows current global ranking by doses per 100 people.
+
+## Tracking Canada's Rank Over Time
+
+* Canada Total Doses per 100 People History - includes Canada global rank by total doses per 100, # countries in OWID dataset, and rank percentile by date. Rank percentile captures rank independent of country count which increases with time.
+
+* Canada Daily Doses per 100 People History - includes Canada global rank by daily doses per 100, # countries in OWID dataset, and rank percentile by date. Rank percentile captures rank independent of country count which increases with time.
+
+Note: 
+
+Creating rank history required 'filling forward' or 'filling up' missing values from last available past value, for days where a country does not have data available. This often occurs over weekends, or other various reasons where country has days missing data. 
+
+Rank percentile is based on daily rank, not the actual total or daily dose value.
 
 ## View visualizations here
 
