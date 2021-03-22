@@ -126,8 +126,8 @@ Promise.all([
         let yPer100 = [];
  
         // create axes x and y arrays
-        for (let i=0; i<arrVacCurrentTotalChart.length; i++) {
-            let row = arrVacCurrentTotalChart[i];
+        for (let i=0; i<arrVacCurrentTotalRank.length; i++) {
+            let row = arrVacCurrentTotalRank[i];
             x.push(row['location']);
             yPer100.push(row['total_vaccinations_per_hundred_filled']);
         }
@@ -138,12 +138,12 @@ Promise.all([
             hoverlabel: {
                 namelength :-1
             },
-            x: yPer100,
-            y: x,
+            x: x,
+            y: yPer100,
             showgrid: false,
             fill: 'tozeroy',
             type: 'bar',
-            orientation: 'h',
+            //orientation: 'h',
             marker:{
                 color: fillColor(x) // color selCountry bar blue, other bars gray
             },
@@ -157,28 +157,27 @@ Promise.all([
                     size: 14
                 },
             },
-            height: 1300,
+            height: 400,
             autosize: true,
             autoscale: false,
             margin: {
-                l: 150,
+                l: 40,
                 r: 40,
-                b: 60,
-                t: 80,
-                pad: 2
+                b: 120,
+                t: 40
             },
             xaxis: { 
-                tickfont: {
-                    size: 11
-                },
-                showgrid: false,
-            },
-            yaxis: { 
                 tickfont: {
                     size: 9
                 },
                 showgrid: false,
                 tickmode: 'linear',
+            },
+            yaxis: { 
+                tickfont: {
+                    size: 11
+                },
+                showgrid: false
             }
         }
 
@@ -229,8 +228,8 @@ Promise.all([
         let yPer100 = [];
  
         // create axes x and y arrays
-        for (let i=0; i<arrVacCurrentDailyChart.length; i++) {
-            let row = arrVacCurrentDailyChart[i];
+        for (let i=0; i<arrVacCurrentDailyRank.length; i++) {
+            let row = arrVacCurrentDailyRank[i];
             x.push(row['location']);
             yPer100.push(row['daily_vaccinations_per_hundred_filled']);
         }
@@ -241,12 +240,12 @@ Promise.all([
             hoverlabel: {
                 namelength :-1
             },
-            x: yPer100,
-            y: x,
+            x: x,
+            y: yPer100,
             showgrid: false,
             fill: 'tozeroy',
             type: 'bar',
-            orientation: 'h',
+            //orientation: 'h',
             marker:{
                 color: fillColor(x) // color selCountry bar blue, other bars gray
             },
@@ -260,28 +259,27 @@ Promise.all([
                     size: 14
                 },
             },
-            height: 1300,
+            height: 400,
             autosize: true,
             autoscale: false,
             margin: {
-                l: 150,
+                l: 40,
                 r: 40,
-                b: 60,
-                t: 80,
-                pad: 2
+                b: 120,
+                t: 40
             },
             xaxis: { 
-                tickfont: {
-                    size: 11
-                },
-                showgrid: false,
-            },
-            yaxis: { 
                 tickfont: {
                     size: 9
                 },
                 showgrid: false,
                 tickmode: 'linear',
+            },
+            yaxis: { 
+                tickfont: {
+                    size: 11
+                },
+                showgrid: false
             }
         }
 
@@ -474,8 +472,8 @@ Promise.all([
             //width: 800,
             height: 500,
             margin: {
-                l: 80,
-                r: 80,
+                l: 40,
+                r: 40,
                 b: 80,
                 t: 180
             },
@@ -732,8 +730,8 @@ Promise.all([
             //width: 800,
             height: 500,
             margin: {
-                l: 80,
-                r: 80,
+                l: 40,
+                r: 40,
                 b: 80,
                 t: 180
             },
