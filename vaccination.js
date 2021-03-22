@@ -168,7 +168,7 @@ Promise.all([
             },
             xaxis: { 
                 tickfont: {
-                    size: 9
+                    size: 8
                 },
                 showgrid: false,
                 tickmode: 'linear',
@@ -270,7 +270,7 @@ Promise.all([
             },
             xaxis: { 
                 tickfont: {
-                    size: 9
+                    size: 8
                 },
                 showgrid: false,
                 tickmode: 'linear',
