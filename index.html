@@ -70,14 +70,23 @@
             <p>These visualizations illustrate Canada's COVID-19 vaccine dose administration global ranking and history.</p>
 
             <ul>
-                <li>Global Total Doses per 100 People - Tracking How Canada Compares To Other Countries</li>
-                <li>Global Daily Doses per 100 People - Tracking How Canada Compares To Other Countries</li>
-                <li>Canada Total Doses per 100 People History - Tracking Canada Rank Over Time</li>
-                <li>Canada Daily Doses per 100 People History - Tracking Canada Rank Over Time</li>
+                <li>Current Total Doses Per 100 People Global Rank</li>
+                <li>Current Daily Doses Per 100 People Global Rank</li>
+                <li>Historical Total Doses Per 100 People Global Rank</li>
+                <li>Historical Daily Doses Per 100 People Global Rank</li>
             </ul>
             
             <p class="font-italic">COVID-19 vaccine data comes from <a href = "https://github.com/owid/COVID-19-data/tree/master/public/data/vaccinations" target="blank">Our World In Data (OWID)</a> who are doing an amazing job collating COVID-19 data from around the world!</p>
-            
+
+            <p class="font-italic">Note following duplicate counts are excluded from OWID data: UK nations England, Northern Ireland, Scotland, Wales as well as global regions Africa, Asia, Europe, European Union, North America, South America, Oceania & World.</p>
+
+            <span><strong>Filter countries:</strong></span>
+            <div class="btn-group flex-wrap" role="group" aria-label="Basic example">
+                <button type="button" class="btn btn-light group" value="all">All</button>
+                <button type="button" class="btn btn-light group" value="OECD">OECD</button>
+                <button type="button" class="btn btn-light group" value="G20">G20</button>
+            </div>
+
             <div id="read_more" style="display:none"></div>
             <div class="div_chart" id="div_total_per100_rank"></div>
             <div class="div_chart" id="div_daily_per100_rank"></div>
