@@ -572,7 +572,8 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             let divChart = document.createElement("div");
             let divTable = document.createElement("div");
             divChart.id = 'div_total_rank_history_chart';
-            let chartTitle = 'Historical Total Doses Per 100 People Global Rank - ' + selCountry + ' vs ' + ((selCountryGroup=='all') ? '' : selCountryGroup) + ' countries ' + ((selCountryPop=='all') ? '' : '>' + selCountryPop + 'm population');
+            let chartTitle = 'Historical Total Doses Per 100 People Global Rank - ' + selCountry + ' vs ' + ((selCountryGroup=='all') ? 'all' : selCountryGroup) + ' countries ' + ((selCountryPop=='all') ? '' : '>' + selCountryPop + 'm population');
+            
             let chartDesc = 'Shows ' + selCountry + ' historical total doses per 100 global rank and rank percentile vs all ' + selCountryGroup + ' countries' + ((selCountryPop=='all') ? '' : ' greater than ' + selCountryPop + ' million population ') + ' in OWID dataset. Rank percentile captures rank independent of country count which increases with time.';
             divTitle.innerHTML = chartTitle;
             divDesc.innerHTML = chartDesc;
@@ -832,7 +833,7 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             let divChart = document.createElement("div");
             let divTable = document.createElement("div");
             divChart.id = 'div_daily_rank_history_chart';
-            let chartTitle = 'Historical Daily Doses Per 100 People Global Rank - ' + selCountry + ' vs ' + ((selCountryGroup=='all') ? '' : selCountryGroup) + ' countries ' + ((selCountryPop=='all') ? '' : '>' + selCountryPop + 'm population');
+            let chartTitle = 'Historical Daily Doses Per 100 People Global Rank - ' + selCountry + ' vs ' + ((selCountryGroup=='all') ? 'all' : selCountryGroup) + ' countries ' + ((selCountryPop=='all') ? '' : '>' + selCountryPop + 'm population');
             let chartDesc = 'Shows ' + selCountry + ' historical daily doses per 100 global rank and rank percentile vs all ' + selCountryGroup + ' countries' + ((selCountryPop=='all') ? '' : ' greater than ' + selCountryPop + ' million population ') + ' in OWID dataset. Rank percentile captures rank independent of country count which increases with time.';
             divTitle.innerHTML = chartTitle;
             divDesc.innerHTML = chartDesc;
