@@ -1,12 +1,11 @@
 
 // get files from OWID github repository
+// to do: use stable url instead
+// https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv
 var file_update_time = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/owid-covid-data-last-updated-timestamp.txt";
 var file_vaccinations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/vaccinations.csv";
 var file_locations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/locations.csv";
 var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_2020.csv";
-
-// to do: use stable url instead
-// https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv
 
 // define color variables
 var clrBlue = 'rgba(49,130,189,.9)';
@@ -14,16 +13,15 @@ var clrGray = 'rgba(204,204,204,.9)';
 var clrBlack = 'rgba(0,0,0,.9)';
 var clrWhiteTransparent = 'rgba(255,255,255,0)';
 
-// define country filter variable
+// define default filter variables
 var selCountry = 'Canada';
 var selCountryGroup = 'all'
-//var selCountryGroup = 'OECD'
-//var selCountryGroup = 'G20'
+var selCountryPop = 'all'
 
 // get data (with filters, if any)
-getData(selCountry, selCountryGroup);
+getData(selCountry, selCountryGroup, selCountryPop);
 
-function getData(selCountry, selCountryGroup){
+function getData(selCountry, selCountryGroup, selCountryPop){
     // promise data from sources
     Promise.all([
         d3.csv(file_vaccinations),
@@ -57,7 +55,7 @@ function getData(selCountry, selCountryGroup){
 
         const ctryListAll = ["England", "European Union", "Northern Ireland", "Scotland", "Wales", "World", "Africa", "Asia", "Europe", "North America", "South America", "Oceania"];
 
-        // define filterString based on selCountryGroup
+        // filter arrVaccinations based on selCountryGroup
         if (selCountryGroup == 'OECD') {
             var arrVacDetail = arrVaccinations.filter(function(item){
                 return ctryListOECD.indexOf(item.location) != -1;
@@ -67,16 +65,10 @@ function getData(selCountry, selCountryGroup){
                 return ctryListG20.indexOf(item.location) != -1;
               });
         } else { // condition 'all'
-        var arrVacDetail = arrVaccinations.filter(function(item){
-            return ctryListAll.indexOf(item.location) === -1;
-          });
+            var arrVacDetail = arrVaccinations.filter(function(item){
+                return ctryListAll.indexOf(item.location) === -1;
+            });
         }
-
-        // country group button clicks
-        $('.group').on( 'click', function() {
-            var activeCountry = $(this).val();
-            getData(selCountry, activeCountry);
-        });
 
         // sort arrVacDetail array by location asc & date desc to get ready for fill up next
         arrVacDetail.sort((a, b) => a.location.localeCompare(b.location) || a.date_sort - b.date_sort);
@@ -95,7 +87,7 @@ function getData(selCountry, selCountryGroup){
             i++;
         });
 
-        // left join arrPopulation to location
+        // left join arrPopulationFilter to location
         // population not used in page yet
         var locationPop = equijoinWithDefault(
             arrLocations, arrPopulation, 
@@ -105,12 +97,21 @@ function getData(selCountry, selCountryGroup){
             {population:null});
 
         // left join locationPop to vaccinations
-        var arrVacDetailLoc = equijoinWithDefault(
+        var arrVacDetailLocRaw = equijoinWithDefault(
             arrVacDetail, locationPop, 
             "location", "location", 
             ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, daily_vaccinations_per_hundred_filled, source}, {vaccines, last_observation_date, population}, ) => 
             ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred,  daily_vaccinations_per_hundred_filled, vaccines, last_observation_date, population, source}), 
             {population: null});
+
+            // filter arrPopulation based on selCountryPop
+        if (selCountryPop == 'all') {
+            var arrVacDetailLoc = arrVacDetailLocRaw;
+        } else {
+            var arrVacDetailLoc = arrVacDetailLocRaw.filter(function(d) {
+                return parseInt(d.population) > parseInt(selCountryPop) * 1000000;
+            });
+        }
 
         // filter vaccinations dataset by location max date to get most current records only
         var arrVacCurrent = arrVacDetailLoc.filter(function(d) {
@@ -144,8 +145,8 @@ function getData(selCountry, selCountryGroup){
             let divDesc= document.createElement("p");
             let divChart = document.createElement("div");
             divChart.id = 'div_total_per100_rank_chart';
-            let chartTitle = 'Current Total Doses Per 100 People Global Rank - ' + selCountry + ' compared to ' + selCountryGroup + ' countries';
-            let chartDesc = 'Shows current global rank by total doses administered per 100 people for all ' + countryCount + ' ' + selCountryGroup + ' countries in OWID dataset. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
+            let chartTitle = 'Current Total Doses Per 100 People Global Rank - ' + selCountry + ' compared to ' + selCountryGroup + ' countries ' + ((selCountryPop=='all') ? '' : '>' + selCountryPop + 'm population');
+            let chartDesc = 'Shows current global rank by total doses administered per 100 people for all ' + countryCount + ' ' + ((selCountryGroup=='all') ? '' : selCountryGroup) + ' countries ' + ((selCountryPop=='all') ? '' : 'greater than ' + selCountryPop + ' million population') + ' in OWID dataset. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
             divTitle.innerHTML = chartTitle;
             divDesc.innerHTML = chartDesc;
             document.getElementById('div_total_per100_rank').append(divTitle);
@@ -183,7 +184,7 @@ function getData(selCountry, selCountryGroup){
             // create chart layout
             let layout = {
                 title: {
-                    text:'Global Total Doses Per 100 People <br> ' + selCountry + ' ' + per100 + ' Ranks ' + countryRank + ' of ' + countryCount + ' ' + selCountryGroup + ' countries',
+                    text:'Global Total Doses Per 100 People <br> ' + selCountry + ': ' + countryRank + ' of ' + countryCount + ((selCountryGroup=='all') ? '' : ' ' + selCountryGroup) + ' countries' + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
                     font: {
                         size: 14
                     },
@@ -247,8 +248,8 @@ function getData(selCountry, selCountryGroup){
             let divDesc= document.createElement("p");
             let divChart = document.createElement("div");
             divChart.id = 'div_daily_per100_rank_chart';
-            let chartTitle = 'Current Daily Doses Per 100 People Global Rank - ' + selCountry + ' compared to ' + selCountryGroup + ' countries';
-            let chartDesc = 'Shows current global rank by daily doses administered per 100 people for all ' + countryCount + ' ' + selCountryGroup + ' countries in OWID dataset. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
+            let chartTitle = 'Current Daily Doses Per 100 People Global Rank - ' + selCountry + ' compared to ' + selCountryGroup + ' countries ' + ((selCountryPop=='all') ? '' : '>' + selCountryPop + 'm population');
+            let chartDesc = 'Shows current global rank by daily doses administered per 100 people for all ' + countryCount + ' ' + ((selCountryGroup=='all') ? '' : selCountryGroup) + ' countries ' + ((selCountryPop=='all') ? '' : 'greater than ' + selCountryPop + ' million population') + ' in OWID dataset. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
             divTitle.innerHTML = chartTitle;
             divDesc.innerHTML = chartDesc;
             document.getElementById('div_daily_per100_rank').append(divTitle);
@@ -286,7 +287,7 @@ function getData(selCountry, selCountryGroup){
             // create chart layout
             let layout = {
                 title: {
-                    text:'Global Daily Doses Per 100 People <br> ' + selCountry + ' ' + per100 + ' Ranks ' + countryRank + ' of ' + countryCount + ' ' + selCountryGroup + ' countries',
+                    text:'Global Daily Doses Per 100 People <br> ' + selCountry + ': ' + countryRank + ' of ' + countryCount + ((selCountryGroup=='all') ? '' : ' ' + selCountryGroup) + ' countries' + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
                     font: {
                         size: 14
                     },
@@ -501,7 +502,7 @@ function getData(selCountry, selCountryGroup){
             // create chart layout
             let layout = {
                 title: {
-                    text: selCountry + ' Total Doses Per 100 People <br> Daily Global Rank ' + selCountryGroup,
+                    text: selCountry + ' Total Doses Per 100 People <br> Historical rank ' + ((selCountryGroup=='all') ? 'all countries' : selCountryGroup + ' countries') + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
                     font: {
                         size: 14
                     },
@@ -571,8 +572,8 @@ function getData(selCountry, selCountryGroup){
             let divChart = document.createElement("div");
             let divTable = document.createElement("div");
             divChart.id = 'div_total_rank_history_chart';
-            let chartTitle = 'Historical Total Doses Per 100 People Global Rank - ' + selCountry + ' vs ' + selCountryGroup + ' countries';
-            let chartDesc = 'Shows ' + selCountry + ' historical total doses per 100 global rank and rank percentile vs ' + selCountryGroup + ' by date countries in OWID dataset. Rank percentile captures rank independent of country count which increases with time.';
+            let chartTitle = 'Historical Total Doses Per 100 People Global Rank - ' + selCountry + ' vs ' + ((selCountryGroup=='all') ? '' : selCountryGroup) + ' countries ' + ((selCountryPop=='all') ? '' : '>' + selCountryPop + 'm population');
+            let chartDesc = 'Shows ' + selCountry + ' historical total doses per 100 global rank and rank percentile vs all ' + selCountryGroup + ' countries' + ((selCountryPop=='all') ? '' : ' greater than ' + selCountryPop + ' million population ') + ' in OWID dataset. Rank percentile captures rank independent of country count which increases with time.';
             divTitle.innerHTML = chartTitle;
             divDesc.innerHTML = chartDesc;
             divTable.innerHTML = '<h4>Total Doses Per 100 People</h4>' + '<p>One table per day containing a list of countries ordered by doses administered per 100 people rank, with country name, doses administered per 100 and total doses administered. ' + selCountry + ' is highlighted red. Click <span class="font-italic">hide/show</span> to see and hide table details.</p>' + rankTables;
@@ -760,7 +761,7 @@ function getData(selCountry, selCountryGroup){
             // create chart layout
             let layout = {
                 title: {
-                    text: selCountry + ' Daily Doses Per 100 People <br> Daily Global Rank ' + selCountryGroup,
+                    text: selCountry + ' Daily Doses Per 100 People <br> Historical rank ' + ((selCountryGroup=='all') ? 'all countries' : selCountryGroup + ' countries') + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
                     font: {
                         size: 14
                     },
@@ -831,8 +832,8 @@ function getData(selCountry, selCountryGroup){
             let divChart = document.createElement("div");
             let divTable = document.createElement("div");
             divChart.id = 'div_daily_rank_history_chart';
-            let chartTitle = 'Historical Daily Doses Per 100 People Global Rank - ' + selCountry + ' vs ' + selCountryGroup + ' countries';
-            let chartDesc = 'Shows ' + selCountry + ' historical daily doses per 100 global rank and rank percentile vs ' + selCountryGroup + ' by date countries in OWID dataset. Rank percentile captures rank independent of country count which increases with time.';
+            let chartTitle = 'Historical Daily Doses Per 100 People Global Rank - ' + selCountry + ' vs ' + ((selCountryGroup=='all') ? '' : selCountryGroup) + ' countries ' + ((selCountryPop=='all') ? '' : '>' + selCountryPop + 'm population');
+            let chartDesc = 'Shows ' + selCountry + ' historical daily doses per 100 global rank and rank percentile vs all ' + selCountryGroup + ' countries' + ((selCountryPop=='all') ? '' : ' greater than ' + selCountryPop + ' million population ') + ' in OWID dataset. Rank percentile captures rank independent of country count which increases with time.';
             divTitle.innerHTML = chartTitle;
             divDesc.innerHTML = chartDesc;
             divTable.innerHTML = '<h4>Historical Daily Doses Per 100 People Global Rank</h4>' + '<p>One table per day containing a list of countries ordered by daily doses administered per 100 people rank, with country name, doses administered per 100 and total doses administered. ' + selCountry + ' is highlighted red. Click <span class="font-italic">hide/show</span> to see and hide table details.</p>' + rankTables;
@@ -859,6 +860,18 @@ function getData(selCountry, selCountryGroup){
 
 
 // FUNCTIONS
+
+// country group button clicks
+$('.country-group').on( 'click', function() {
+    var selCountryGroup = $(this).val();
+    getData(selCountry, selCountryGroup, selCountryPop);
+});
+
+// country population button clicks
+$('.country-pop').on( 'click', function() {
+    var selCountryPop = $(this).val();
+    getData(selCountry, selCountryGroup, selCountryPop);
+});
 
 // fill up arrays
 function getFilledUpArray(array) {
