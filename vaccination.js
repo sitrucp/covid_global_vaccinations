@@ -49,11 +49,11 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             d.concatLocDate = d.location + d.date;
         });
 
-        const ctryListOECD = ["Australia", "Austria", "Belgium", "Canada", "Chile", "Colombia", "Czechia", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Iceland", "Ireland", "Israel", "Italy", "Japan", "South Korea", "Latvia", "Lithuania", "Luxembourg", "Mexico", "Netherlands", "New Zealand", "Norway", "Poland", "Portugal", "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "United Kingdom", "United States"];
+        const ctryListOECD = ["Australia", "Austria", "Belgium", "Canada", "Chile", "Colombia", "Czechia", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Iceland", "Ireland", "Israel", "Italy", "Japan", "South Korea", "Latvia", "Lithuania", "Luxembourg", "Mexico", "Netherlands", "New Zealand", "Norway", "Poland", "Portugal", "Slovakia", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "United Kingdom", "United States"]; // include only these in OECD
 
-        const ctryListG20 = ["Argentina", "Australia", "Brazil", "Canada", "China", "European Union", "France", "Germany", "India", "Indonesia", "Italy", "Japan", "Mexico", "Russia", "Saudi Arabia", "South Africa", "South Korea", "Turkey", "United Kingdom", "United States"];
+        const ctryListG20 = ["Argentina", "Australia", "Brazil", "Canada", "China", "France", "Germany", "India", "Indonesia", "Italy", "Japan", "Mexico", "Russia", "Saudi Arabia", "South Africa", "South Korea", "Turkey", "United Kingdom", "United States"]; // include only these in G20
 
-        const ctryListAll = ["England", "European Union", "Northern Ireland", "Scotland", "Wales", "World", "Africa", "Asia", "Europe", "North America", "South America", "Oceania"];
+        const ctryListAll = ["England", "European Union", "Northern Ireland", "Scotland", "Wales", "World", "Africa", "Asia", "Europe", "North America", "South America", "Oceania"]; // exclude these from all
 
         // filter arrVaccinations based on selCountryGroup
         if (selCountryGroup == 'OECD') {
