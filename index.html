@@ -68,10 +68,9 @@
             <p>These visualizations illustrate Canada's COVID-19 vaccine dose administration global ranking and history.</p>
 
             <ul>
-                <li>Current Total Doses Per 100 People Global Rank</li>
-                <li>Current Daily Doses Per 100 People Global Rank</li>
-                <li>Historical Total Doses Per 100 People Global Rank</li>
-                <li>Historical Daily Doses Per 100 People Global Rank</li>
+                <li>Total Doses Per 100 People Global Rank - Current and Historical</li>
+                <li>Daily Doses Per 100 People Global Rank - Current and Historical</li>
+                <li>People Vaccinated Per 100 People Global Rank - Current and Historical</li>
             </ul>
             
             <p class="font-italic">COVID-19 vaccine data comes from <a href = "https://github.com/owid/COVID-19-data/tree/master/public/data/vaccinations" target="blank">Our World In Data (OWID)</a> who are doing an amazing job collating COVID-19 data from around the world!</p>
@@ -94,14 +93,22 @@
             </div>
 
             <div id="read_more" style="display:none"></div>
+
+            <div class="div_section"><h4>Total Doses Per 100 People</h4></div>
             <div class="div_chart" id="div_total_per100_rank">
                 <div id="loading" class="spinner-grow" role="status">
                     <span class="sr-only">Loading...</span>
                 </div>
             </div>
-            <div class="div_chart" id="div_daily_per100_rank"></div>
             <div class="div_chart" id="div_total_per100_rank_history"></div>
+
+            <div class="div_section"><h4>Daily Doses Per 100 People</h4></div>
+            <div class="div_chart" id="div_daily_per100_rank"></div>
             <div class="div_chart" id="div_daily_per100_rank_history"></div>
+
+            <div class="div_section"><h4>People Vaccinated Per 100 People</h4></div>
+            <div class="div_chart" id="div_people_vax_per100_rank"></div>
+            <div class="div_chart" id="div_people_vax_per100_rank_history"></div>
 
             <p>Site files: <a href="https://github.com/sitrucp/covid_global_vaccinations" target="blank">github.com/sitrucp/covid_global_vaccinations</a></p>
 

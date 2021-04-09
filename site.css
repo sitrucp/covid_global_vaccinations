@@ -8,14 +8,17 @@
 }
 
 .div_chart {
-    margin-top: 40px;
+    margin-top: 1px;
+}
+
+.div_section {
+    margin-top: 30px;
 }
 
 .tbl_date_row {
     background-color: lightgray;
     padding: 5px;
 }
-
 
 .btn {
     margin-bottom: 10px; 
