@@ -624,7 +624,7 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             // create chart layout
             let layout = {
                 title: {
-                    text: selCountry + ' Total Doses Per 100 People <br> Historical rank ' + ((selCountryGroup=='all') ? 'all countries' : selCountryGroup + ' countries') + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
+                    text: selCountry + ' Total Doses Per 100 People <br> Historical rank vs ' + ((selCountryGroup=='all') ? 'all countries' : selCountryGroup + ' countries') + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
                     font: {
                         size: 14
                     },
@@ -891,7 +891,7 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             // create chart layout
             let layout = {
                 title: {
-                    text: selCountry + ' Daily Doses Per 100 People <br> Historical rank ' + ((selCountryGroup=='all') ? 'all countries' : selCountryGroup + ' countries') + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
+                    text: selCountry + ' Daily Doses Per 100 People <br> Historical rank vs ' + ((selCountryGroup=='all') ? 'all countries' : selCountryGroup + ' countries') + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
                     font: {
                         size: 14
                     },
@@ -1157,7 +1157,7 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             // create chart layout
             let layout = {
                 title: {
-                    text: selCountry + ' People Vaccinated Per 100 People <br> Historical rank ' + ((selCountryGroup=='all') ? 'all countries' : selCountryGroup + ' countries') + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
+                    text: selCountry + ' People Vaccinated Per 100 People <br> Historical rank vs ' + ((selCountryGroup=='all') ? 'all countries' : selCountryGroup + ' countries') + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
                     font: {
                         size: 14
                     },
