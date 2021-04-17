@@ -4,7 +4,6 @@
 // https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv
 var file_update_time = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/owid-covid-data-last-updated-timestamp.txt";
 var file_vaccinations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/vaccinations.csv";
-var file_locations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/locations.csv";
 var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_2020.csv";
 
 // define color variables
@@ -25,7 +24,6 @@ function getData(selCountry, selCountryGroup, selCountryPop){
     // promise data from sources
     Promise.all([
         d3.csv(file_vaccinations),
-        d3.csv(file_locations),
         d3.csv(file_population),
         d3.csv(file_update_time),
     ]).then(function(data) {
@@ -33,9 +31,8 @@ function getData(selCountry, selCountryGroup, selCountryPop){
 
         // get data from promise
         var arrVaccinations = data[0];
-        var arrLocations = data[1];
-        var arrPopulation = data[2];
-        var updateTime = data[3].columns[0];
+        var arrPopulation = data[1];
+        var updateTime = data[2].columns[0];
 
         // write owid last updated time to index page
         lastUpdated = changeTimezone(updateTime);
@@ -89,24 +86,41 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             i++;
         });
 
+        // create last_observation_date from vaccinations eg max date by location 
+        var arrLastObservationDate = d3.nest()
+        .key(function(d) { 
+            return d.location; 
+        })
+        .rollup(function(v) { 
+            return {
+                last_observation_date: d3.max(v, function(d) { return d.date; }),
+            };
+        })
+        .entries(arrVacDetail)
+        .map(function(group) {
+            return {
+                location: group.key,
+                last_observation_date: group.value.last_observation_date
+            }
+        });
+
         // left join arrPopulationFilter to location
-        // population not used in page yet
-        var locationPop = equijoinWithDefault(
-            arrLocations, arrPopulation, 
+        var arrLastObsPop = equijoinWithDefault(
+            arrLastObservationDate, arrPopulation, 
             "location", "entity", 
-            ({location, vaccines, last_observation_date}, {population}, ) => 
-            ({location, vaccines, last_observation_date, population}), 
+            ({location, last_observation_date}, {population}, ) => 
+            ({location, last_observation_date, population}), 
             {population:null});
 
-        // left join locationPop to vaccinations
+        // left join arrVacDetail to arrLastObsPop
         var arrVacDetailLocRaw = equijoinWithDefault(
-            arrVacDetail, locationPop, 
+            arrVacDetail, arrLastObsPop, 
             "location", "location", 
-            ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_vaccinated_per_hundred_filled, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, daily_vaccinations_per_hundred_filled, source}, {vaccines, last_observation_date, population}, ) => 
-            ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_vaccinated_per_hundred_filled, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred,  daily_vaccinations_per_hundred_filled, vaccines, last_observation_date, population, source}), 
+            ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_vaccinated_per_hundred_filled, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, daily_vaccinations_per_hundred_filled}, {last_observation_date, population}, ) => 
+            ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_vaccinated_per_hundred_filled, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred,  daily_vaccinations_per_hundred_filled, last_observation_date, population}), 
             {population: null});
 
-            // filter arrPopulation based on selCountryPop
+        // filter arrVacDetailLocRaw based on selCountryPop
         if (selCountryPop == 'all') {
             var arrVacDetailLoc = arrVacDetailLocRaw;
         } else {
@@ -115,11 +129,10 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             });
         }
 
-        // filter vaccinations dataset by location max date to get most current records only
+        // filter arrVacDetailLoc by last observation date to get most current records only
         var arrVacCurrent = arrVacDetailLoc.filter(function(d) {
             return d.date == d.last_observation_date;
         });
-
 
         // create vacDates array with unique dates to loop through 
         var vacDates = [...new Set(arrVacDetailLoc.map(item => item.date))];
@@ -132,6 +145,10 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             //return a > b ? 1 : a < b ? -1 : 0; // asc
             return a < b ? 1 : a > b ? -1 : 0; // desc
         });
+
+        /////
+        // create history array here, use in history charts and tables
+        ////
 
         // CREATE CHART
         function createTotalPer100RankChart() {
@@ -235,110 +252,6 @@ function getData(selCountry, selCountryGroup, selCountryPop){
 
         }
 
-
-        // CREATE CHART
-        function createPeopleVaxPer100RankChart() {
-            // create new array to sort
-            let arrVacCurrentPeopleVaxRank = [...arrVacCurrent];
-            let arrVacCurrentPeopleVaxChart = [...arrVacCurrent];
-            
-            // sort to get chart order
-            arrVacCurrentPeopleVaxChart.sort((a, b) => {
-                return a.people_vaccinated_per_hundred_filled - b.people_vaccinated_per_hundred_filled;
-            });
-
-            // sort to get rank order
-            arrVacCurrentPeopleVaxRank.sort((a, b) => {
-                return b.people_vaccinated_per_hundred_filled - a.people_vaccinated_per_hundred_filled;
-            });
-
-            // Create chart text content
-            let countryRank = arrVacCurrentPeopleVaxRank.findIndex(x => x.location === selCountry) + 1;
-            let per100 = arrVacCurrentPeopleVaxRank.find(x => x.location === selCountry).people_vaccinated_per_hundred_filled;
-            let countryCount = arrVacCurrent.length;
-
-            // create divs, para for chart
-            document.getElementById('div_people_vax_per100_rank').innerHTML = '';
-            let divTitle = document.createElement("h4");
-            let divDesc= document.createElement("p");
-            let divChart = document.createElement("div");
-            divChart.id = 'div_people_vax_per100_rank_chart';
-            let chartTitle = 'Current People Vaccinated Per 100 People Global Rank - ' + selCountry + ' vs ' + selCountryGroup + ' countries ' + ((selCountryPop=='all') ? '' : '>' + selCountryPop + 'm population');
-            let chartDesc = 'Shows current global rank by people vaccinated per 100 people for all ' + countryCount + ' ' + ((selCountryGroup=='all') ? '' : selCountryGroup) + ' countries ' + ((selCountryPop=='all') ? '' : 'greater than ' + selCountryPop + ' million population') + ' in OWID dataset. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
-            divTitle.innerHTML = chartTitle;
-            divDesc.innerHTML = chartDesc;
-            //document.getElementById('div_people_vax_per100_rank').append(divTitle);
-            //document.getElementById('div_people_vax_per100_rank').append(divDesc);
-            document.getElementById('div_people_vax_per100_rank').append(divChart);
-    
-            // define x and y axis arrays
-            let x = [];
-            let yPer100 = [];
-    
-            // create axes x and y arrays
-            for (let i=0; i<arrVacCurrentPeopleVaxRank.length; i++) {
-                let row = arrVacCurrentPeopleVaxRank[i];
-                x.push(row['location']);
-                yPer100.push(row['people_vaccinated_per_hundred_filled']);
-            }
-
-            // create chart trace
-            let trPer100 = {
-                name: 'Vaccinated Per 100',
-                hoverlabel: {
-                    namelength :-1
-                },
-                x: x,
-                y: yPer100,
-                showgrid: false,
-                fill: 'tozeroy',
-                type: 'bar',
-                //orientation: 'h',
-                marker:{
-                    color: fillColor(x) // color selCountry bar blue, other bars gray
-                },
-            };
-
-            // create chart layout
-            let layout = {
-                title: {
-                    text:'People Vaccinated Per 100 People <br> ' + selCountry + ': ' + countryRank + ' of ' + countryCount + ((selCountryGroup=='all') ? '' : ' ' + selCountryGroup) + ' countries' + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
-                    font: {
-                        size: 14
-                    },
-                },
-                height: 400,
-                autosize: true,
-                autoscale: false,
-                margin: {
-                    l: 40,
-                    r: 40,
-                    b: 120,
-                    t: 40
-                },
-                xaxis: { 
-                    tickfont: {
-                        size: 8
-                    },
-                    showgrid: false,
-                    tickmode: 'linear',
-                },
-                yaxis: { 
-                    tickfont: {
-                        size: 11
-                    },
-                    showgrid: false
-                }
-            }
-
-            // define plotly data, config, create chart
-            let data = [trPer100];
-            let config = {responsive: true}
-            Plotly.newPlot('div_people_vax_per100_rank_chart', data, layout, config);
-
-        }
-
-        
         // CREATE CHART
         function createDailyPer100RankChart() {
             // create new array to sort
@@ -441,6 +354,107 @@ function getData(selCountry, selCountryGroup, selCountryPop){
 
         }
 
+        // CREATE CHART
+        function createPeopleVaxPer100RankChart() {
+            // create new array to sort
+            let arrVacCurrentPeopleVaxRank = [...arrVacCurrent];
+            let arrVacCurrentPeopleVaxChart = [...arrVacCurrent];
+            
+            // sort to get chart order
+            arrVacCurrentPeopleVaxChart.sort((a, b) => {
+                return a.people_vaccinated_per_hundred_filled - b.people_vaccinated_per_hundred_filled;
+            });
+
+            // sort to get rank order
+            arrVacCurrentPeopleVaxRank.sort((a, b) => {
+                return b.people_vaccinated_per_hundred_filled - a.people_vaccinated_per_hundred_filled;
+            });
+
+            // Create chart text content
+            let countryRank = arrVacCurrentPeopleVaxRank.findIndex(x => x.location === selCountry) + 1;
+            let per100 = arrVacCurrentPeopleVaxRank.find(x => x.location === selCountry).people_vaccinated_per_hundred_filled;
+            let countryCount = arrVacCurrent.length;
+
+            // create divs, para for chart
+            document.getElementById('div_people_vax_per100_rank').innerHTML = '';
+            let divTitle = document.createElement("h4");
+            let divDesc= document.createElement("p");
+            let divChart = document.createElement("div");
+            divChart.id = 'div_people_vax_per100_rank_chart';
+            let chartTitle = 'Current People Vaccinated Per 100 People Global Rank - ' + selCountry + ' vs ' + selCountryGroup + ' countries ' + ((selCountryPop=='all') ? '' : '>' + selCountryPop + 'm population');
+            let chartDesc = 'Shows current global rank by people vaccinated per 100 people for all ' + countryCount + ' ' + ((selCountryGroup=='all') ? '' : selCountryGroup) + ' countries ' + ((selCountryPop=='all') ? '' : 'greater than ' + selCountryPop + ' million population') + ' in OWID dataset. Note over time, as OWID adds new countries to its dataset, ' + selCountry + ' past rank may change to account for new data.';
+            divTitle.innerHTML = chartTitle;
+            divDesc.innerHTML = chartDesc;
+            //document.getElementById('div_people_vax_per100_rank').append(divTitle);
+            //document.getElementById('div_people_vax_per100_rank').append(divDesc);
+            document.getElementById('div_people_vax_per100_rank').append(divChart);
+    
+            // define x and y axis arrays
+            let x = [];
+            let yPer100 = [];
+    
+            // create axes x and y arrays
+            for (let i=0; i<arrVacCurrentPeopleVaxRank.length; i++) {
+                let row = arrVacCurrentPeopleVaxRank[i];
+                x.push(row['location']);
+                yPer100.push(row['people_vaccinated_per_hundred_filled']);
+            }
+
+            // create chart trace
+            let trPer100 = {
+                name: 'Vaccinated Per 100',
+                hoverlabel: {
+                    namelength :-1
+                },
+                x: x,
+                y: yPer100,
+                showgrid: false,
+                fill: 'tozeroy',
+                type: 'bar',
+                //orientation: 'h',
+                marker:{
+                    color: fillColor(x) // color selCountry bar blue, other bars gray
+                },
+            };
+
+            // create chart layout
+            let layout = {
+                title: {
+                    text:'People Vaccinated Per 100 People <br> ' + selCountry + ': ' + countryRank + ' of ' + countryCount + ((selCountryGroup=='all') ? '' : ' ' + selCountryGroup) + ' countries' + ((selCountryPop=='all') ? '' : ' >' + selCountryPop + 'm pop'),
+                    font: {
+                        size: 14
+                    },
+                },
+                height: 400,
+                autosize: true,
+                autoscale: false,
+                margin: {
+                    l: 40,
+                    r: 40,
+                    b: 120,
+                    t: 40
+                },
+                xaxis: { 
+                    tickfont: {
+                        size: 8
+                    },
+                    showgrid: false,
+                    tickmode: 'linear',
+                },
+                yaxis: { 
+                    tickfont: {
+                        size: 11
+                    },
+                    showgrid: false
+                }
+            }
+
+            // define plotly data, config, create chart
+            let data = [trPer100];
+            let config = {responsive: true}
+            Plotly.newPlot('div_people_vax_per100_rank_chart', data, layout, config);
+
+        }
 
         // CREATE CHART
         function createTotalPer100RankHistoryChart() {
@@ -716,7 +730,6 @@ function getData(selCountry, selCountryGroup, selCountryPop){
 
         }
 
-
         // CREATE CHART
         function createDailyPer100RankHistoryChart() {
 
@@ -981,7 +994,6 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             Plotly.newPlot('div_daily_rank_history_chart', data, layout, config);
 
         }
-
 
         // CREATE CHART
         function createPeopleVaxPer100RankHistoryChart() {
