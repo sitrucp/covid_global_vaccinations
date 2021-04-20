@@ -71,18 +71,20 @@ function getData(selCountry, selCountryGroup, selCountryPop){
         arrVacDetail.sort((a, b) => a.location.localeCompare(b.location) || a.date_sort - b.date_sort);
 
         // create new fill up arrays
-        arrVacPer100Filled = getFilledUpArray(arrVacDetail.map(function(i){return i.total_vaccinations_per_hundred;}));
-        arrTotalVaccinationsFilled = getFilledUpArray(arrVacDetail.map(function(i){return i.total_vaccinations;}));
-        arrDailyVaccinationsFilled = getFilledUpArray(arrVacDetail.map(function(i){return i.daily_vaccinations_per_hundred;}));
-        arrPeopleVaccinatedFilled = getFilledUpArray(arrVacDetail.map(function(i){return i.people_vaccinated_per_hundred;}));
+        arrTotalVacPer100Filled = getFilledUpArray(arrVacDetail.map(function(i){return i.total_vaccinations_per_hundred;}));
+        arrTotalVacFilled = getFilledUpArray(arrVacDetail.map(function(i){return i.total_vaccinations;}));
+        arrDailyVacPer100Filled = getFilledUpArray(arrVacDetail.map(function(i){return i.daily_vaccinations_per_hundred;}));
+        arrPeopleVacPer100Filled = getFilledUpArray(arrVacDetail.map(function(i){return i.people_vaccinated_per_hundred;}));
+        arrPeopleVacFilled = getFilledUpArray(arrVacDetail.map(function(i){return i.people_vaccinated;}));
 
         // write new fill up arrays back to arrVacDetail
         let i = 0;
         arrVacDetail.forEach(function(d) {
-            d.total_vaccinations_per_hundred_filled = arrVacPer100Filled[i];
-            d.total_vaccinations_filled = arrTotalVaccinationsFilled[i];
-            d.daily_vaccinations_per_hundred_filled = arrDailyVaccinationsFilled[i];
-            d.people_vaccinated_per_hundred_filled = arrPeopleVaccinatedFilled[i];
+            d.total_vaccinations_per_hundred_filled = arrTotalVacPer100Filled[i];
+            d.total_vaccinations_filled = arrTotalVacFilled[i];
+            d.daily_vaccinations_per_hundred_filled = arrDailyVacPer100Filled[i];
+            d.people_vaccinated_per_hundred_filled = arrPeopleVacPer100Filled[i];
+            d.people_vaccinated_filled = arrPeopleVacFilled[i];
             i++;
         });
 
@@ -110,14 +112,14 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             "location", "entity", 
             ({location, last_observation_date}, {population}, ) => 
             ({location, last_observation_date, population}), 
-            {population:null});
+            {population: null});
 
         // left join arrVacDetail to arrLastObsPop
         var arrVacDetailLocRaw = equijoinWithDefault(
             arrVacDetail, arrLastObsPop, 
             "location", "location", 
-            ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_vaccinated_per_hundred_filled, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, daily_vaccinations_per_hundred_filled}, {last_observation_date, population}, ) => 
-            ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_vaccinated_per_hundred_filled, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred,  daily_vaccinations_per_hundred_filled, last_observation_date, population}), 
+            ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_vaccinated_filled, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_vaccinated_per_hundred_filled, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred, daily_vaccinations_per_hundred_filled}, {last_observation_date, population}, ) => 
+            ({location, iso_code, date, date_sort, total_vaccinations, total_vaccinations_filled, people_vaccinated, people_vaccinated_filled, people_fully_vaccinated, daily_vaccinations_raw, daily_vaccinations, total_vaccinations_per_hundred, total_vaccinations_per_hundred_filled, people_vaccinated_per_hundred, people_vaccinated_per_hundred_filled, people_fully_vaccinated_per_hundred, daily_vaccinations_per_million, daily_vaccinations_per_hundred,  daily_vaccinations_per_hundred_filled, last_observation_date, population}), 
             {population: null});
 
         // filter arrVacDetailLocRaw based on selCountryPop
@@ -146,9 +148,57 @@ function getData(selCountry, selCountryGroup, selCountryPop){
             return a < b ? 1 : a > b ? -1 : 0; // desc
         });
 
-        /////
-        // create history array here, use in history charts and tables
-        ////
+        // create history array, use below in history charts and tables
+        var arrHistory = [];
+
+        for (i = 0; i < vacDates.length; i++) {
+
+            // define current date
+            let vacDate = vacDates[i];
+
+            // filter array to dates less than current date
+            let arrHistoryDateAll = arrVacDetailLoc.filter(function(d) { 
+                return d.date <= vacDate;
+            });
+
+            // summarize by max date
+            let arrHistoryDate = d3.nest()
+            .key(function(d) { 
+                return d.location; 
+            })
+            .rollup(function(v) { 
+                return {
+                    date: d3.max(v, function(d) { return d.date; })
+                };
+            })
+            .entries(arrHistoryDateAll)
+            .map(function(group) {
+                return {
+                    location: group.key,
+                    date: group.value.date
+                }
+            });
+
+            // create concat location and date to join arrays
+            arrHistoryDateAll.forEach(function(d) {
+                d.concatLocDate = d.location + d.date;
+            });
+            arrHistoryDate.forEach(function(d) {
+                d.concatLocDate = d.location + d.date;
+            });
+            
+            // create required variables in arrLoopData array
+            arrHistoryDate.forEach(function(d) {
+                d.total_vaccinations_filled = arrHistoryDateAll.find(x => x.concatLocDate === d.concatLocDate).total_vaccinations_filled;
+                d.total_vaccinations_per_hundred_filled = arrHistoryDateAll.find(x => x.concatLocDate === d.concatLocDate).total_vaccinations_per_hundred_filled;
+                d.daily_vaccinations_per_hundred_filled = arrHistoryDateAll.find(x => x.concatLocDate === d.concatLocDate).daily_vaccinations_per_hundred_filled;
+                d.people_vaccinated_filled = arrHistoryDateAll.find(x => x.concatLocDate === d.concatLocDate).people_vaccinated_filled;
+                d.people_vaccinated_per_hundred_filled = arrHistoryDateAll.find(x => x.concatLocDate === d.concatLocDate).people_vaccinated_per_hundred_filled;
+            });
+
+            arrHistory.push( {'date' : vacDate, 'country_count' : arrHistoryDate.length, 'country_data' : arrHistoryDate});
+
+        }
 
         // CREATE CHART
         function createTotalPer100RankChart() {
@@ -459,131 +509,23 @@ function getData(selCountry, selCountryGroup, selCountryPop){
         // CREATE CHART
         function createTotalPer100RankHistoryChart() {
 
-            /*
-            // create vacDates array with unique dates to loop through 
-            let vacDates = [...new Set(arrVacDetailLoc.map(item => item.date))];
-
-            // sort vacDates array desc order on date modified to integer
-            // to loop through them desc below
-            vacDates.sort(function(a,b) {
-                a = a.split('-').join('');
-                b = b.split('-').join('');
-                //return a > b ? 1 : a < b ? -1 : 0; // asc
-                return a < b ? 1 : a > b ? -1 : 0; // desc
-            });
-            */
-
             // define x and y axis arrays
             let x = [];
             let yRank = [];
-            let ytotalVac = [];
-            let ytotalVacPer100 = [];
             let yCtryCount = [];
-        
-            // create the daily ranks and country counts:
-            // loop through vacDates desc, get max date per country, that is less than loop date
-            // assign max date less than loop date as country's last report date
-            for (let i=0; i<vacDates.length; i++) {
-                let loopDate = vacDates[i];
-                // filter arrVacDetailLoc to dates less than loop date
-                let vacDaily = arrVacDetailLoc.filter(function(d) { 
-                    return d.date <= loopDate;
-                });
 
-                // summarize location by country's last date reported <= loopDate
-                let loopLocMaxDate = d3.nest()
-                .key(function(d) { 
-                    return d.location; 
-                })
-                .rollup(function(v) { 
-                    return {
-                        max_loop_date: d3.max(v, function(d) { return d.date; })
-                    };
-                })
-                .entries(vacDaily)
-                .map(function(group) {
-                    return {
-                        location: group.key,
-                        max_loop_date: group.value.max_loop_date
-                    }
-                });
+            let arrHistoryTotal = [...arrHistory];
 
-                // create concat vacDaily location and date to join arrays
-                vacDaily.forEach(function(d) {
-                    d.concatLocDate = d.location + d.date;
-                });
-
-                // create concat loopLocMaxDate location and date to join arrays
-                loopLocMaxDate.forEach(function(d) {
-                    d.concatLocDate = d.location + d.max_loop_date;
-                });
-                
-                // join loopLocMaxDate and vacDaily on concat location and date to get  total_vaccinations_per_hundred value from vacDaily for loop date
-                loopLocMaxDate.forEach(function(d) {
-                    d.total_vaccinations_per_hundred_filled = vacDaily.find(x => x.concatLocDate === d.concatLocDate).total_vaccinations_per_hundred_filled;
-                    d.total_vaccinations_filled = vacDaily.find(x => x.concatLocDate === d.concatLocDate).total_vaccinations_filled;
-                });
-                
-                // order loopLocMaxDate desc by total_vaccinations_per_hundred to get rank
-                loopLocMaxDate.sort((a, b) => {
+            for (i = 0; i < arrHistoryTotal.length; i++) {
+                // order country_data desc by total_vaccinations_per_hundred to get rank
+                arrHistoryTotal[i]['country_data'].sort((a, b) => {
                     return b.total_vaccinations_per_hundred_filled - a.total_vaccinations_per_hundred_filled;
                 });
-
-                // create Canada current variables
-                let totalVac = loopLocMaxDate.findIndex(x => x.location === selCountry).total_vaccinations_filled;
-                ytotalVac.push(totalVac);
-
-                let totalVacPer100 = loopLocMaxDate.findIndex(x => x.location === selCountry).total_vaccinations_per_hundred_filled;
-                ytotalVacPer100.push(totalVacPer100);
-    
-                let countryRank = loopLocMaxDate.findIndex(x => x.location === selCountry) + 1;
+                let countryRank = arrHistoryTotal[i]['country_data'].findIndex(x => x.location === selCountry) + 1;
+                // create chart arrays
+                x.push(arrHistoryTotal[i]['date']);
+                yCtryCount.push(arrHistoryTotal[i]['country_count']);
                 yRank.push(countryRank);
-                
-                // var location = loopLocMaxDate.findIndex(x => x.location === selCountry).location;
-
-                // create x array and country count arrays
-                x.push(loopDate);
-                vCountryCount = loopLocMaxDate.length;
-                yCtryCount.push(vCountryCount);
-
-                /*
-                //  define rank table varible
-                let rankTables = '';
-                // define table section variables
-                let tableRows = '';
-                
-                // create table rows 
-                for (let j=0; j < loopLocMaxDate.length; j++) {
-                    tableRow = loopLocMaxDate[j];
-                    vLocation = tableRow.location;
-                    vRank = (parseInt(j) + 1);
-                    vPer100 = parseFloat(tableRow.total_vaccinations_per_hundred_filled).toFixed(2);
-                    vTotalVax = parseInt(tableRow.total_vaccinations_filled).toLocaleString();
-                    vRankPctile = getRankPctile(vRank, vCountryCount);
-
-                    if (tableRow.location == selCountry) {
-                        strRank = '<span style="font-weight: bold; color: red;">' + vRank + '</span>';
-                        strLocation = '<span style="font-weight: bold; color: red;">' + vLocation + '</span>';
-                        strPer100 = '<span style="font-weight: bold; color: red;">' + vPer100 + '</span>';
-                        strTotalVax = '<span style="font-weight: bold; color: red;">' + vTotalVax + '</span>';
-                        strRankPctile = '<span style="font-weight: bold; color: red;">' + vRankPctile + '</span>';
-                    } else {
-                        strRank= vRank;
-                        strLocation = vLocation;
-                        strPer100 = vPer100;
-                        strTotalVax = vTotalVax;
-                        strRankPctile =  vRankPctile;
-                    };
-                    tableRows += '<tr class="tbl_values_row"><td>' + strRank + '</td><td>' + strLocation + '</td><td style="text-align: right;">' + strPer100 + '</td><td style="text-align: right;">' + strTotalVax + '</td><td style="text-align: right;">' + strRankPctile + '</td></tr>';
-                }
-                
-                // create table section
-                rankTable = '<table class="table-sm" id="rankTbl'+ i +'" style="display:none;"><tr><th>Rank</th><th>Location</th><th style="text-align: right;">Doses Per 100</th><th style="text-align: right;">Total Doses</th><th style="text-align: right;">Rank Percentile</th></tr>';
-                rankTable += tableRows;
-                rankTable += '<p class="font-weight-bold" style="margin-top: 20px;">' + loopDate + ' Rank: ' + countryRank + ' / ' + vCountryCount + ' <a class="small font-italic" onclick="toggleTable(&apos;rankTbl'+ i +'&apos;);" href="javascript:void(0);">hide/show</a> </h5>'; 
-                rankTables += rankTable;
-                */
-
             }
             
             // create max values for y axis range 
@@ -733,125 +675,25 @@ function getData(selCountry, selCountryGroup, selCountryPop){
         // CREATE CHART
         function createDailyPer100RankHistoryChart() {
 
-            /*
-            // create vacDates array with unique dates to loop through 
-            let vacDates = [...new Set(arrVacDetailLoc.map(item => item.date))];
-
-            // sort vacDates array desc order on date modified to integer
-            // to loop through them desc below
-            vacDates.sort(function(a,b) {
-                a = a.split('-').join('');
-                b = b.split('-').join('');
-                //return a > b ? 1 : a < b ? -1 : 0; // asc
-                return a < b ? 1 : a > b ? -1 : 0; // desc
-            });
-            */
-
             // define x and y axis arrays
             let x = [];
             let yRank = [];
             let yCtryCount = [];
-        
-            // create the daily ranks and country counts:
-            // loop through vacDates desc, get max date per country, that is less than loop date
-            // assign max date less than loop date as country's last report date
-            for (let i=0; i<vacDates.length; i++) {
-                let loopDate = vacDates[i];
-                // filter arrVacDetailLoc to dates less than loop date
-                let vacDaily = arrVacDetailLoc.filter(function(d) { 
-                    return d.date <= loopDate;
-                });
 
-                // summarize location by country's last date reported <= loopDate
-                let loopLocMaxDate = d3.nest()
-                .key(function(d) { 
-                    return d.location;
-                })
-                .rollup(function(v) { 
-                    return {
-                        max_loop_date: d3.max(v, function(d) { return d.date; })
-                    };
-                })
-                .entries(vacDaily)
-                .map(function(group) {
-                    return {
-                        location: group.key,
-                        max_loop_date: group.value.max_loop_date
-                    }
-                });
+            let arrHistoryDaily = [...arrHistory];
 
-                // create concat vacDaily location and date to join arrays
-                vacDaily.forEach(function(d) {
-                    d.concatLocDate = d.location + d.date;
-                });
-
-                // create concat loopLocMaxDate location and date to join arrays
-                loopLocMaxDate.forEach(function(d) {
-                    d.concatLocDate = d.location + d.max_loop_date;
-                });
-                
-                // join loopLocMaxDate and vacDaily on concat location and date to get  total_vaccinations_per_hundred value from vacDaily for loop date
-                loopLocMaxDate.forEach(function(d) {
-                    d.daily_vaccinations_per_hundred_filled = vacDaily.find(x => x.concatLocDate === d.concatLocDate).daily_vaccinations_per_hundred_filled;
-                    d.daily_vaccinations_filled = vacDaily.find(x => x.concatLocDate === d.concatLocDate).daily_vaccinations_filled;
-                });
-                
-                // order loopLocMaxDate desc by daily_vaccinations_per_hundred to get rank
-                loopLocMaxDate.sort((a, b) => {
+            for (i = 0; i < arrHistoryDaily.length; i++) {
+                // order country_data desc by daily_vaccinations_per_hundred_filled to get rank
+                arrHistoryDaily[i]['country_data'].sort((a, b) => {
                     return b.daily_vaccinations_per_hundred_filled - a.daily_vaccinations_per_hundred_filled;
                 });
-
-                // create Canada current variables
-                let totalVax = loopLocMaxDate.findIndex(x => x.location === selCountry).daily_vaccinations_filled;
-                let countryRank = loopLocMaxDate.findIndex(x => x.location === selCountry) + 1;
+                let countryRank = arrHistoryDaily[i]['country_data'].findIndex(x => x.location === selCountry) + 1;
+                // create chart arrays
+                x.push(arrHistoryDaily[i]['date']);
+                yCtryCount.push(arrHistoryDaily[i]['country_count']);
                 yRank.push(countryRank);
-                // var per100 = loopLocMaxDate.findIndex(x => x.location === selCountry).daily_vaccinations_per_hundred_filled;
-                // var location = loopLocMaxDate.findIndex(x => x.location === selCountry).location; 
-
-                // create x array and country count arrays
-                x.push(loopDate);
-                vCountryCount = loopLocMaxDate.length;
-                yCtryCount.push(vCountryCount);
-
-                /*
-                //  define rank table varible
-                let rankTables = '';
-                // define table section variables
-                let tableRows = '';
-                
-                // create table rows 
-                for (let j=0; j < loopLocMaxDate.length; j++) {
-                    tableRow = loopLocMaxDate[j];
-                    vLocation = tableRow.location;
-                    vRank = (parseInt(j) + 1);
-                    vPer100 = parseFloat(tableRow.daily_vaccinations_per_hundred_filled).toFixed(2);
-                    vDailyVax = parseInt(tableRow.daily_vaccinations_filled).toLocaleString();
-                    vRankPctile = getRankPctile(vRank, vCountryCount);
-
-                    if (tableRow.location == selCountry) {
-                        strRank = '<span style="font-weight: bold; color: red;">' + vRank + '</span>';
-                        strLocation = '<span style="font-weight: bold; color: red;">' + vLocation + '</span>';
-                        strPer100 = '<span style="font-weight: bold; color: red;">' + vPer100 + '</span>';
-                        strDailyVax = '<span style="font-weight: bold; color: red;">' + vDailyVax + '</span>';
-                        strRankPctile = '<span style="font-weight: bold; color: red;">' + vRankPctile + '</span>';
-                    } else {
-                        strRank= vRank;
-                        strLocation = vLocation;
-                        strPer100 = vPer100;
-                        strDailyVax = vDailyVax;
-                        strRankPctile =  vRankPctile;
-                    };
-                    tableRows += '<tr class="tbl_values_row"><td>' + strRank + '</td><td>' + strLocation + '</td><td style="text-align: right;">' + strPer100 + '</td><td style="text-align: right;">' + strDailyVax + '</td><td style="text-align: right;">' + strRankPctile + '</td></tr>';
-                }
-                
-                // create table section
-                rankTable = '<table class="table-sm" id="rankTbl'+ i +'" style="display:none;"><tr><th>Rank</th><th>Location</th><th style="text-align: right;">Doses Per 100</th><th style="text-align: right;">Daily Doses</th><th style="text-align: right;">Rank Percentile</th></tr>';
-                rankTable += tableRows;
-                rankTable += '<p class="font-weight-bold" style="margin-top: 20px;">' + loopDate + ' Rank: ' + countryRank + ' / ' + vCountryCount + ' <a class="small font-italic" onclick="toggleTable(&apos;rankTbl'+ i +'&apos;);" href="javascript:void(0);">hide/show</a> </h5>'; 
-                rankTables += rankTable;
-                */
             }
-            
+
             // create max values for y axis range 
             //let maxRank = Math.max(...yRank);
             let maxCount = Math.max(...yCtryCount);
@@ -998,123 +840,23 @@ function getData(selCountry, selCountryGroup, selCountryPop){
         // CREATE CHART
         function createPeopleVaxPer100RankHistoryChart() {
 
-            /*
-            // create vacDates array with unique dates to loop through 
-            let vacDates = [...new Set(arrVacDetailLoc.map(item => item.date))];
-
-            // sort vacDates array desc order on date modified to integer
-            // to loop through them desc below
-            vacDates.sort(function(a,b) {
-                a = a.split('-').join('');
-                b = b.split('-').join('');
-                //return a > b ? 1 : a < b ? -1 : 0; // asc
-                return a < b ? 1 : a > b ? -1 : 0; // desc
-            });
-            */
-
             // define x and y axis arrays
             let x = [];
             let yRank = [];
             let yCtryCount = [];
-        
-            // create the daily ranks and country counts:
-            // loop through vacDates desc, get max date per country, that is less than loop date
-            // assign max date less than loop date as country's last report date
-            for (let i=0; i<vacDates.length; i++) {
-                let loopDate = vacDates[i];
-                // filter arrVacDetailLoc to dates less than loop date
-                let vacDaily = arrVacDetailLoc.filter(function(d) { 
-                    return d.date <= loopDate;
-                });
 
-                // summarize location by country's last date reported <= loopDate
-                let loopLocMaxDate = d3.nest()
-                .key(function(d) { 
-                    return d.location;
-                })
-                .rollup(function(v) { 
-                    return {
-                        max_loop_date: d3.max(v, function(d) { return d.date; })
-                    };
-                })
-                .entries(vacDaily)
-                .map(function(group) {
-                    return {
-                        location: group.key,
-                        max_loop_date: group.value.max_loop_date
-                    }
-                });
+            let arrHistoryPeople = [...arrHistory];
 
-                // create concat vacDaily location and date to join arrays
-                vacDaily.forEach(function(d) {
-                    d.concatLocDate = d.location + d.date;
-                });
-
-                // create concat loopLocMaxDate location and date to join arrays
-                loopLocMaxDate.forEach(function(d) {
-                    d.concatLocDate = d.location + d.max_loop_date;
-                });
-                
-                // join loopLocMaxDate and vacDaily on concat location and date to get  total_vaccinations_per_hundred value from vacDaily for loop date
-                loopLocMaxDate.forEach(function(d) {
-                    d.people_vaccinated_per_hundred_filled = vacDaily.find(x => x.concatLocDate === d.concatLocDate).people_vaccinated_per_hundred_filled;
-                    d.daily_vaccinations_filled = vacDaily.find(x => x.concatLocDate === d.concatLocDate).daily_vaccinations_filled;
-                });
-                
-                // order loopLocMaxDate desc by daily_vaccinations_per_hundred to get rank
-                loopLocMaxDate.sort((a, b) => {
+            for (i = 0; i < arrHistoryPeople.length; i++) {
+                // order country_data desc by daily_vaccinations_per_hundred_filled to get rank
+                arrHistoryPeople[i]['country_data'].sort((a, b) => {
                     return b.people_vaccinated_per_hundred_filled - a.people_vaccinated_per_hundred_filled;
                 });
-
-                // create Canada current variables
-                let countryRank = loopLocMaxDate.findIndex(x => x.location === selCountry) + 1;
+                let countryRank = arrHistoryPeople[i]['country_data'].findIndex(x => x.location === selCountry) + 1;
+                // create chart arrays
+                x.push(arrHistoryPeople[i]['date']);
+                yCtryCount.push(arrHistoryPeople[i]['country_count']);
                 yRank.push(countryRank);
-                // var per100 = loopLocMaxDate.findIndex(x => x.location === selCountry).people_vaccinated_per_hundred_filled;
-                // var location = loopLocMaxDate.findIndex(x => x.location === selCountry).location; 
-
-                // create x array and country count arrays
-                x.push(loopDate);
-                vCountryCount = loopLocMaxDate.length;
-                yCtryCount.push(vCountryCount);
-
-                /*
-                //  define rank table varible
-                let rankTables = '';
-                // define table section variables
-                let tableRows = '';
-                
-                // create table rows 
-                for (let j=0; j < loopLocMaxDate.length; j++) {
-                    tableRow = loopLocMaxDate[j];
-                    vLocation = tableRow.location;
-                    vRank = (parseInt(j) + 1);
-                    vPer100 = parseFloat(tableRow.people_vaccinated_per_hundred_filled).toFixed(2);
-                    vDailyVax = parseInt(tableRow.daily_vaccinations_filled).toLocaleString();
-                    vRankPctile = getRankPctile(vRank, vCountryCount);
-
-                    if (tableRow.location == selCountry) {
-                        strRank = '<span style="font-weight: bold; color: red;">' + vRank + '</span>';
-                        strLocation = '<span style="font-weight: bold; color: red;">' + vLocation + '</span>';
-                        strPer100 = '<span style="font-weight: bold; color: red;">' + vPer100 + '</span>';
-                        strDailyVax = '<span style="font-weight: bold; color: red;">' + vDailyVax + '</span>';
-                        strRankPctile = '<span style="font-weight: bold; color: red;">' + vRankPctile + '</span>';
-                    } else {
-                        strRank= vRank;
-                        strLocation = vLocation;
-                        strPer100 = vPer100;
-                        strDailyVax = vDailyVax;
-                        strRankPctile =  vRankPctile;
-                    };
-                    tableRows += '<tr class="tbl_values_row"><td>' + strRank + '</td><td>' + strLocation + '</td><td style="text-align: right;">' + strPer100 + '</td><td style="text-align: right;">' + strDailyVax + '</td><td style="text-align: right;">' + strRankPctile + '</td></tr>';
-                }
-                
-                // create table section
-                rankTable = '<table class="table-sm" id="rankTbl'+ i +'" style="display:none;"><tr><th>Rank</th><th>Location</th><th style="text-align: right;">Vaccinated Per 100</th><th style="text-align: right;">Daily Doses</th><th style="text-align: right;">Rank Percentile</th></tr>';
-                rankTable += tableRows;
-                rankTable += '<p class="font-weight-bold" style="margin-top: 20px;">' + loopDate + ' Rank: ' + countryRank + ' / ' + vCountryCount + ' <a class="small font-italic" onclick="toggleTable(&apos;rankTbl'+ i +'&apos;);" href="javascript:void(0);">hide/show</a> </h5>'; 
-                rankTables += rankTable;
-                */
-
             }
             
             // create max values for y axis range 
