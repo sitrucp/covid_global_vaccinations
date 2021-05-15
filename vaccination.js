@@ -50,7 +50,7 @@ function getData(selCountry, selCountryGroup, selCountryPop){
 
         const ctryListG20 = ["Argentina", "Australia", "Brazil", "Canada", "China", "France", "Germany", "India", "Indonesia", "Italy", "Japan", "Mexico", "Russia", "Saudi Arabia", "South Africa", "South Korea", "Turkey", "United Kingdom", "United States"]; // include only these in G20
 
-        const ctryListAll = ["England", "European Union", "Northern Ireland", "Scotland", "Wales", "World", "Africa", "Asia", "Europe", "North America", "South America", "Oceania"]; // exclude these from all
+        const ctryListAll = ["England", "European Union", "Northern Ireland", "Scotland", "Wales", "World", "Africa", "Asia", "Europe", "North America", "South America", "Oceania", "High income", "Low income", "Lower middle income", "Upper middle income"]; // exclude these from all
 
         // filter arrVaccinations based on selCountryGroup
         if (selCountryGroup == 'OECD') {
