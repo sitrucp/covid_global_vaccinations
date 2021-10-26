@@ -1,9 +1,7 @@
 
 // get files from OWID github repository
-// to do: use stable url instead
-// https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv
-var file_update_time = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/owid-covid-data-last-updated-timestamp.txt";
-var file_vaccinations = "https://raw.githubusercontent.com/owid/COVID-19-data/master/public/data/vaccinations/vaccinations.csv";
+var file_update_time = "https://covid.ourworldindata.org/data/owid-covid-data-last-updated-timestamp.txt";
+var file_vaccinations = "https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv";
 var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_2020.csv";
 
 // define color variables
@@ -1024,6 +1022,13 @@ $('.country-group').on( 'click', function() {
 // country population button clicks
 $('.country-pop').on( 'click', function() {
     var selCountryPop = $(this).val();
+    getData(selCountry, selCountryGroup, selCountryPop);
+});
+
+// country population button clicks
+$('.country').on( 'change', function() {
+    var selCountry = $(this).val();
+    console.log(selCountry, selCountryGroup, selCountryPop);
     getData(selCountry, selCountryGroup, selCountryPop);
 });
 
