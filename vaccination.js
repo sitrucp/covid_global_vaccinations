@@ -2,7 +2,7 @@
 // get files from OWID github repository
 var file_update_time = "https://covid.ourworldindata.org/data/owid-covid-data-last-updated-timestamp.txt";
 var file_vaccinations = "https://covid.ourworldindata.org/data/vaccinations/vaccinations.csv";
-var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_2020.csv";
+var file_population = "https://raw.githubusercontent.com/owid/COVID-19-data/master/scripts/input/un/population_latest.csv";
 
 // define color variables
 var clrBlue = 'rgba(49,130,189,.9)';
